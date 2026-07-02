@@ -1,0 +1,139 @@
+{
+  "theme_and_archetype": {
+    "theme": "Light",
+    "archetype": "Archetype 4: Swiss & High-Contrast",
+    "reasoning": "Interviews are high-stakes, data-driven, and require absolute clarity. A strict, brutalist, high-contrast aesthetic creates a sense of authority, objectivity, and truth. The AI should feel like an elite, hyper-competent evaluator, not a playful toy.",
+    "core_ethos": "Color is function only. 95% of the UI should be monochrome. Expose the skeleton with visible grid lines. Use sharp typography and generous negative space to create visual tension."
+  },
+  "typography": {
+    "fonts": {
+      "heading": "Outfit, sans-serif",
+      "body": "IBM Plex Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace",
+      "imports": [
+        "@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;700&display=swap');"
+      ]
+    },
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tighter leading-none text-zinc-950",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-zinc-900",
+      "h3": "text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900",
+      "body": "text-base leading-relaxed text-zinc-700",
+      "small_label": "text-xs font-mono uppercase tracking-[0.2em] text-zinc-500"
+    },
+    "rules": [
+      "Never use Inter for headings.",
+      "Headings must have tight letter spacing.",
+      "Labels and overlines must be uppercase monospace with wide tracking.",
+      "Do not jump more than 2 Tailwind text sizes between a heading and its subtext."
+    ]
+  },
+  "color_palette": {
+    "background": {
+      "primary": "bg-white",
+      "secondary": "bg-zinc-50",
+      "tertiary": "bg-zinc-100"
+    },
+    "text": {
+      "primary": "text-zinc-950",
+      "secondary": "text-zinc-600",
+      "muted": "text-zinc-400",
+      "inverse": "text-white"
+    },
+    "border": {
+      "default": "border-zinc-200",
+      "strong": "border-zinc-900"
+    },
+    "interactive": {
+      "primary_button": "bg-zinc-950 hover:bg-zinc-800 text-white transition-colors",
+      "secondary_button": "bg-white hover:bg-zinc-50 text-zinc-950 border border-zinc-200 transition-colors",
+      "accent": "text-blue-600 bg-blue-50"
+    },
+    "status": {
+      "success": "text-green-700 bg-green-50 border-green-200",
+      "warning": "text-amber-700 bg-amber-50 border-amber-200",
+      "error": "text-red-700 bg-red-50 border-red-200"
+    }
+  },
+  "layout_and_spacing": {
+    "grid_system": {
+      "general": "Start mobile-first with grid-cols-1. Scale to grid-cols-12 on desktop.",
+      "report_dashboard": "Use the 'Control Room' mode: tight gaps (gap-4 or gap-6), grid-cols-1 md:grid-cols-3 lg:grid-cols-4. Utilize every pixel. Use h-full on children.",
+      "hero_setup": "Use the 'Tetris' grid: wide gaps (gap-8 to gap-12). Create asymmetry. Example: Form takes col-span-5, image takes col-span-7."
+    },
+    "spacing_scale": "Use generous padding for containers: p-6, p-8, p-12. Avoid cramped spaces. If an element has a border, ensure internal padding prevents text collision.",
+    "alignment": "Left-align paragraphs, forms, and dense content. Center-align only if it intentionally improves visual tension. Optical alignment over geometrical."
+  },
+  "surface_styles": {
+    "cards_and_containers": {
+      "style": "Grid Borders (The Technical Look)",
+      "radius": "rounded-none or max rounded-sm (2px to 4px). Avoid pill shapes.",
+      "shadows": "No soft drop shadows. Use crisp 1px borders (border-zinc-200) or sharp solid shadows if brutalism is needed (e.g., shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]).",
+      "glassmorphism": "Avoid glassmorphism for this app. Use flat solid surfaces for data clarity."
+    }
+  },
+  "component_customizations": {
+    "buttons": "Must be rectangular, sharp edges. Use pure black background for primary CTA with white text. Include group-hover translation for interior icons.",
+    "inputs_and_selects": "Override Shadcn default radius to rounded-none. Height should be h-12 for better click targets. Border should be border-zinc-300 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950.",
+    "progress_bars": "Used for scoring. Keep height minimal (h-2). Fill should be black (zinc-950) on a zinc-100 track. No rounded corners.",
+    "badges": "Square corners. Use monochrome or single distinct color (blue/green/red) based on score. Font must be uppercase mono."
+  },
+  "key_screens": {
+    "hero_and_setup": {
+      "layout": "Two-column asymmetrical split on desktop. Left: Minimalist typography and form setup. Right: Massive, high-contrast emotional image with a subtle noise overlay.",
+      "form_elements": "Job Role (Text), Experience Level (Select), Duration (Select). Bold input labels.",
+      "action": "Massive 'Start Interview' primary button."
+    },
+    "live_voice_interview": {
+      "layout": "Distraction-free environment. Center-focused.",
+      "visuals": "A massive, dynamic SVG pulsing orb in the center. When AI speaks, it expands and breathes. When user speaks, an inner ring activates.",
+      "typography": "Live transcript displayed at the bottom in a large, readable serif or clean sans-serif. Monospace timer at the top right.",
+      "controls": "Bottom floating bar with Mute, Pause, and 'End Interview' (Signal Red border)."
+    },
+    "feedback_report": {
+      "layout": "Progressive disclosure dashboard. 'Control Room' grid.",
+      "top_section": "Massive overall score (text-6xl or larger) on the left, flanked by small radar chart or stat blocks on the right.",
+      "middle_section": "Grid of key skills (Technical, Communication, Problem Solving) using progress bars and monospace scores.",
+      "bottom_section": "Detailed question-by-question log in an expandable accordion or clean table format. Distinct sections for Strengths and Learning Suggestions."
+    }
+  },
+  "motion_and_interactions": {
+    "hover_states": "All buttons must explicitly define hover text and background colors. Add subtle -translate-y-[1px] on cards.",
+    "voice_pulsing": "Use Framer Motion to scale (1 to 1.1) and pulse opacity (0.5 to 1) of the AI avatar/orb when audio is active.",
+    "transitions": "Use transition-all duration-200 ease-out for color changes.",
+    "accessibility": "Include prefers-reduced-motion queries. Ensure all animations convey state without relying purely on color."
+  },
+  "media_and_assets": {
+    "icons": {
+      "library": "lucide-react",
+      "style": "Use sharp, linear icons with stroke-width 1.5 or 2."
+    },
+    "images": {
+      "hero_background_1": {
+        "url": "https://images.pexels.com/photos/36733331/pexels-photo-36733331.jpeg",
+        "description": "Two professionals in a modern office discussing business. Bright, professional setting. Use on the right side of the Hero/Setup screen.",
+        "usage": "Add a bg-black/10 overlay to slightly reduce glare and let it sit comfortably in the layout."
+      },
+      "hero_background_2": {
+        "url": "https://images.pexels.com/photos/7644081/pexels-photo-7644081.jpeg",
+        "description": "Asian woman interview with eyeglasses, business attire. Alternative hero image."
+      },
+      "voice_texture": {
+        "url": "https://images.pexels.com/photos/247676/pexels-photo-247676.jpeg",
+        "description": "Abstract concentric circle pattern. Use as a highly transparent background texture (opacity-5) during the live voice interview screen."
+      }
+    }
+  },
+  "accessibility_and_testing": {
+    "contrast": "Ensure all text meets minimum 4.5:1 ratio. No pure transparent backgrounds under text. No grey-on-grey text.",
+    "testing_attributes": [
+      "data-testid='setup-form-role-input'",
+      "data-testid='setup-form-experience-select'",
+      "data-testid='setup-form-duration-select'",
+      "data-testid='start-interview-button'",
+      "data-testid='live-interview-mute-button'",
+      "data-testid='live-interview-end-button'",
+      "data-testid='report-overall-score'"
+    ]
+  }
+}
