@@ -31,6 +31,12 @@ VAPI_ASSISTANT_ID = os.environ.get('VAPI_ASSISTANT_ID', '')
 app = FastAPI(title="AI Voice Mock Interview MVP")
 api_router = APIRouter(prefix="/api")
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
+logger = logging.getLogger(__name__)
+
 
 # ---------- Models ----------
 class TranscriptTurn(BaseModel):
@@ -248,12 +254,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
-logger = logging.getLogger(__name__)
 
 
 @app.on_event("shutdown")

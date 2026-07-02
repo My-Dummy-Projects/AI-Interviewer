@@ -273,4 +273,3 @@ export default function ReportPage() {
 }
 
 // suppress unused import warning for Progress if not used
-void Progress;
