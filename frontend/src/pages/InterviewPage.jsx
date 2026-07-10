@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useInterview } from "@/context/InterviewContext";
 import { getVapi, resetVapi } from "@/lib/vapiClient";
+import { VoxaLogo } from "@/components/VoxaLogo";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -20,7 +21,7 @@ export default function InterviewPage() {
   const navigate = useNavigate();
   const { setup, transcript, setTranscript, setReport } = useInterview();
 
-  const [status, setStatus] = useState("connecting"); // connecting | listening | speaking | ended | error
+  const [status, setStatus] = useState("connecting");
   const [error, setError] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -40,12 +41,10 @@ export default function InterviewPage() {
   );
   const remaining = Math.max(0, durationSec - elapsed);
 
-  // Redirect to setup if missing
   useEffect(() => {
-    if (!setup) navigate("/", { replace: true });
+    if (!setup) navigate("/setup", { replace: true });
   }, [setup, navigate]);
 
-  // Timer
   useEffect(() => {
     if (status === "connecting" || ended) return;
     const id = setInterval(() => {
@@ -62,7 +61,6 @@ export default function InterviewPage() {
     return () => clearInterval(id);
   }, [status, ended, durationSec]);
 
-  // Fetch config and start Vapi
   useEffect(() => {
     if (!setup) return;
     let cancelled = false;
@@ -103,11 +101,9 @@ export default function InterviewPage() {
           setStatus("listening");
         };
         const onVolumeLevel = (v) => {
-          // Assistant volume; useful only if we want a VU meter later
-          if (v > 0.3) console.debug("[Vapi] assistant volume", v.toFixed(2));
+          if (v > 0.3) console.debug("[Vapi] volume", v.toFixed(2));
         };
         const onMessage = (msg) => {
-          // Log EVERY message type so we can see what Vapi is emitting
           console.log("[Vapi] message", msg?.type, msg);
           if (!msg || msg.type !== "transcript") return;
           const role = msg.role === "user" ? "user" : "assistant";
@@ -115,11 +111,9 @@ export default function InterviewPage() {
           if (!text) return;
           if (msg.transcriptType === "partial") {
             partialsRef.current[role] = text;
-            // trigger re-render for live partials
             setTranscript([...transcriptRef.current]);
             return;
           }
-          // final
           partialsRef.current[role] = "";
           const turn = { role, text, timestamp: Date.now() };
           transcriptRef.current = [...transcriptRef.current, turn];
@@ -153,18 +147,13 @@ export default function InterviewPage() {
         vapi.on("message", onMessage);
         vapi.on("error", onError);
 
-        // Note: we intentionally do NOT override `model` here. Vapi requires
-        // `model.provider` when overriding model config, and the assistant's
-        // provider is already configured on the Vapi dashboard. We pass only
-        // safe overrides: dynamic variables (for {{role}}/{{experienceLevel}}/
-        // {{duration}} placeholders in the dashboard prompt) and firstMessage.
         await vapi.start(cfg.vapiAssistantId, {
           variableValues: {
             role: setup.jobRole,
             experienceLevel: setup.experienceLevel,
             duration: String(setup.durationMinutes),
           },
-          firstMessage: `Hi, I'm Aria — your AI interviewer for today. We'll spend about ${setup.durationMinutes} minutes on a mock interview for the ${setup.jobRole} role at the ${setup.experienceLevel} level. I'll ask a mix of technical and behavioral questions, and I'll dig in with follow-ups. Ready to begin?`,
+          firstMessage: `Hi, I'm Aria — your Voxa interviewer for today. We'll spend about ${setup.durationMinutes} minutes on a mock interview for the ${setup.jobRole} role at the ${setup.experienceLevel} level. I'll ask a mix of technical and behavioral questions, and I'll dig in with follow-ups. Ready to begin?`,
         });
       } catch (e) {
         console.error(e);
@@ -179,7 +168,6 @@ export default function InterviewPage() {
     };
   }, [setup]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       resetVapi();
@@ -205,12 +193,11 @@ export default function InterviewPage() {
       try {
         vapiRef.current?.stop();
       } catch (_) {
-        /* ignore stop errors */
+        /* ignore */
       }
       setEnded(true);
       setStatus("ended");
 
-      // Submit transcript for feedback
       const payload = {
         jobRole: setup.jobRole,
         experienceLevel: setup.experienceLevel,
@@ -224,7 +211,7 @@ export default function InterviewPage() {
 
       if (payload.transcript.length === 0) {
         toast.error("No transcript captured. Try again with a longer session.");
-        navigate("/", { replace: true });
+        navigate("/setup", { replace: true });
         return;
       }
 
@@ -251,7 +238,6 @@ export default function InterviewPage() {
   const showUserRing = status === "listening" && !isMuted;
   const showAssistantPulse = status === "speaking";
 
-  // Live transcript view (with any partials)
   const liveTurns = useMemo(() => {
     const arr = [...transcriptRef.current];
     if (partialsRef.current.assistant) {
@@ -274,19 +260,23 @@ export default function InterviewPage() {
   }, [transcript]);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="relative min-h-screen bg-[#050505] text-white flex flex-col overflow-x-hidden">
+      <div className="ambient-glow" />
+
       {/* Top bar */}
-      <header className="border-b border-zinc-200">
+      <header className="relative border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="label-overline">
-            02 / Live Interview
+          <div className="flex items-center gap-4">
+            <VoxaLogo size={26} />
+            <div className="hidden md:block h-5 w-px bg-white/10" />
+            <div className="hidden md:block label-overline">02 / Live Interview</div>
           </div>
           <div className="flex items-center gap-4">
             <div className="hidden md:block text-xs font-mono uppercase tracking-widest text-zinc-500">
               {setup?.jobRole} · {setup?.experienceLevel}
             </div>
             <div
-              className="font-mono text-sm text-zinc-950 border border-zinc-900 px-3 py-1"
+              className="font-mono text-sm text-white rounded-full border border-white/15 bg-white/5 px-3 py-1"
               data-testid="live-interview-timer"
             >
               {fmtTime(elapsed)} / {fmtTime(durationSec)}
@@ -296,37 +286,57 @@ export default function InterviewPage() {
       </header>
 
       {/* Main stage */}
-      <main className="flex-1 relative overflow-hidden">
-        <div className="absolute inset-0 grid-bg opacity-40 pointer-events-none" />
+      <main className="relative flex-1 overflow-hidden">
+        <div className="absolute inset-0 grid-bg opacity-30 pointer-events-none" />
         <div className="relative max-w-5xl mx-auto px-6 py-10 flex flex-col items-center">
           {/* Status label */}
-          <div className="label-overline">{statusText}</div>
+          <div className="flex items-center gap-2">
+            <div
+              className={`h-2 w-2 rounded-full ${
+                status === "speaking"
+                  ? "bg-cyan-300 animate-pulse"
+                  : status === "listening"
+                  ? "bg-emerald-400 animate-pulse"
+                  : status === "error"
+                  ? "bg-red-500"
+                  : "bg-zinc-500"
+              }`}
+            />
+            <div className="label-overline">{statusText}</div>
+          </div>
 
           {/* Orb */}
           <div className="relative mt-8 flex items-center justify-center h-56 w-56 md:h-72 md:w-72">
             {showAssistantPulse && (
               <>
-                <div className="absolute h-full w-full rounded-full bg-zinc-950/10 orb-ring" />
+                <div className="absolute h-full w-full rounded-full bg-cyan-400/10 orb-ring" />
                 <div
-                  className="absolute h-full w-full rounded-full bg-zinc-950/5 orb-ring"
+                  className="absolute h-full w-full rounded-full bg-cyan-400/5 orb-ring"
                   style={{ animationDelay: "0.6s" }}
                 />
               </>
             )}
             <div
-              className={`relative h-full w-full rounded-full bg-zinc-950 flex items-center justify-center ${
+              className={`relative h-full w-full rounded-full border border-white/10 bg-gradient-to-b from-white/10 to-white/[0.02] flex items-center justify-center ${
                 showAssistantPulse ? "orb-speaking" : ""
               }`}
             >
               {showUserRing && (
-                <div className="absolute inset-3 rounded-full border-2 border-white/30" />
+                <div className="absolute inset-3 rounded-full border-2 border-cyan-300/40" />
               )}
-              <div className="text-white text-center">
-                <div className="font-mono text-[10px] tracking-[0.3em] uppercase opacity-70">
+              <div
+                className="absolute h-32 w-32 md:h-40 md:w-40 rounded-full"
+                style={{
+                  background:
+                    "radial-gradient(circle at 30% 30%, rgba(0,255,234,0.55), rgba(0,255,234,0.05) 70%)",
+                }}
+              />
+              <div className="relative text-center">
+                <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-zinc-400">
                   {status === "speaking" ? "AI" : status === "listening" ? "YOU" : "···"}
                 </div>
                 <div
-                  className="text-3xl font-bold mt-1"
+                  className="text-3xl font-black tracking-tighter mt-1 text-white"
                   style={{ fontFamily: "var(--font-heading)" }}
                 >
                   Aria
@@ -342,15 +352,15 @@ export default function InterviewPage() {
 
           {/* Error */}
           {status === "error" && error && (
-            <div className="mt-8 max-w-2xl border border-red-200 bg-red-50 text-red-700 p-4 flex gap-3">
-              <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
+            <div className="mt-8 max-w-2xl rounded-xl border border-red-500/30 bg-red-500/10 text-red-200 p-4 flex gap-3">
+              <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0 text-red-400" />
               <div className="text-sm">
                 <div className="font-semibold">Voice connection failed</div>
-                <div className="mt-1">{error}</div>
+                <div className="mt-1 text-red-200/90">{error}</div>
                 <Button
                   variant="outline"
-                  className="mt-3 rounded-none border-red-300 hover:bg-red-100"
-                  onClick={() => navigate("/", { replace: true })}
+                  className="mt-3 rounded-full bg-transparent border-red-400/40 text-red-200 hover:bg-red-500/10"
+                  onClick={() => navigate("/setup", { replace: true })}
                 >
                   Back to setup
                 </Button>
@@ -359,8 +369,8 @@ export default function InterviewPage() {
           )}
 
           {/* Live transcript */}
-          <div className="mt-10 w-full max-w-3xl border border-zinc-200 bg-white">
-            <div className="border-b border-zinc-200 px-4 py-2 flex items-center justify-between">
+          <div className="mt-10 w-full max-w-3xl rounded-xl border border-white/10 bg-[#0a0a0a] overflow-hidden">
+            <div className="border-b border-white/5 px-4 py-2 flex items-center justify-between">
               <div className="label-overline">Live Transcript</div>
               <div className="text-xs font-mono text-zinc-500">
                 {liveTurns.length} {liveTurns.length === 1 ? "line" : "lines"}
@@ -380,12 +390,12 @@ export default function InterviewPage() {
                 <div key={i} className="leading-relaxed">
                   <span
                     className={`font-mono text-[10px] tracking-widest uppercase mr-2 ${
-                      t.role === "assistant" ? "text-blue-700" : "text-zinc-900"
+                      t.role === "assistant" ? "text-cyan-300" : "text-zinc-400"
                     }`}
                   >
                     {t.role === "assistant" ? "ARIA" : "YOU"}
                   </span>
-                  <span className={`${t.partial ? "text-zinc-400 italic" : "text-zinc-800"}`}>
+                  <span className={`${t.partial ? "text-zinc-500 italic" : "text-zinc-200"}`}>
                     {t.text}
                   </span>
                 </div>
@@ -396,14 +406,14 @@ export default function InterviewPage() {
       </main>
 
       {/* Bottom controls */}
-      <footer className="border-t border-zinc-200 bg-white">
+      <footer className="relative border-t border-white/5 bg-[#050505]">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-center gap-3">
           <Button
             data-testid="live-interview-mute-button"
             variant="outline"
             onClick={toggleMute}
             disabled={status === "connecting" || status === "ended" || status === "error"}
-            className="rounded-none h-12 border-zinc-300 hover:bg-zinc-50 text-zinc-950"
+            className="rounded-full h-12 px-5 bg-transparent border-white/15 hover:bg-white/5 text-white"
           >
             {isMuted ? (
               <>
@@ -421,7 +431,7 @@ export default function InterviewPage() {
             data-testid="live-interview-end-button"
             onClick={handleEnd}
             disabled={submitting || status === "connecting"}
-            className="rounded-none h-12 bg-white text-red-700 border-2 border-red-600 hover:bg-red-50 font-semibold tracking-wide"
+            className="rounded-full h-12 px-6 bg-red-500/10 text-red-300 border-2 border-red-500/40 hover:bg-red-500/20 font-semibold tracking-wide disabled:opacity-50"
           >
             {submitting ? (
               <>
