@@ -84,17 +84,31 @@ export default function InterviewPage() {
         vapiRef.current = vapi;
 
         const onCallStart = () => {
+          console.log("[Vapi] call-start");
           startedAtRef.current = Date.now();
           setStatus("listening");
           toast.success("Interview started.");
         };
         const onCallEnd = () => {
+          console.log("[Vapi] call-end");
           setStatus("ended");
           setEnded(true);
         };
-        const onSpeechStart = () => setStatus("speaking");
-        const onSpeechEnd = () => setStatus("listening");
+        const onSpeechStart = () => {
+          console.log("[Vapi] speech-start (assistant)");
+          setStatus("speaking");
+        };
+        const onSpeechEnd = () => {
+          console.log("[Vapi] speech-end (assistant)");
+          setStatus("listening");
+        };
+        const onVolumeLevel = (v) => {
+          // Assistant volume; useful only if we want a VU meter later
+          if (v > 0.3) console.debug("[Vapi] assistant volume", v.toFixed(2));
+        };
         const onMessage = (msg) => {
+          // Log EVERY message type so we can see what Vapi is emitting
+          console.log("[Vapi] message", msg?.type, msg);
           if (!msg || msg.type !== "transcript") return;
           const role = msg.role === "user" ? "user" : "assistant";
           const text = msg.transcript || "";
@@ -135,6 +149,7 @@ export default function InterviewPage() {
         vapi.on("call-end", onCallEnd);
         vapi.on("speech-start", onSpeechStart);
         vapi.on("speech-end", onSpeechEnd);
+        vapi.on("volume-level", onVolumeLevel);
         vapi.on("message", onMessage);
         vapi.on("error", onError);
 
