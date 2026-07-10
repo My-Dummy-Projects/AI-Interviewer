@@ -23,7 +23,12 @@ db = client[os.environ['DB_NAME']]
 
 # OpenRouter (OpenAI-compatible)
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
-OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'google/gemma-3-27b-it:free')
+OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-oss-20b:free')
+OPENROUTER_FALLBACK_MODELS = [
+    m.strip()
+    for m in os.environ.get('OPENROUTER_FALLBACK_MODELS', '').split(',')
+    if m.strip()
+]
 
 VAPI_PUBLIC_KEY = os.environ.get('VAPI_PUBLIC_KEY', '')
 VAPI_ASSISTANT_ID = os.environ.get('VAPI_ASSISTANT_ID', '')
