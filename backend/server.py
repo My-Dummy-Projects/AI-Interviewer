@@ -218,6 +218,7 @@ async def generate_feedback(req: FeedbackRequest):
         logger.warning("OPENROUTER_API_KEY missing, returning fallback report.")
         return _fallback_report(req, "OPENROUTER_API_KEY is not configured on the server.")
 
+    print("OPENROUTER_API_KEY", OPENROUTER_API_KEY)
     prompt = _build_feedback_prompt(req)
 
     try:
@@ -239,6 +240,7 @@ async def generate_feedback(req: FeedbackRequest):
             extra_headers={
                 "HTTP-Referer": "https://voice-interview-demo.preview.emergentagent.com",
                 "X-Title": "AI Voice Mock Interview",
+
             },
         )
         raw = completion.choices[0].message.content or ""
