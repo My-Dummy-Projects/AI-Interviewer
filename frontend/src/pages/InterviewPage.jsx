@@ -114,11 +114,21 @@ export default function InterviewPage() {
         const onError = (e) => {
           console.error("Vapi error", e);
           setStatus("error");
-          setError(
+          const msg =
             typeof e === "string"
               ? e
-              : e?.error?.message || e?.message || "Voice connection error."
-          );
+              : e?.error?.message ||
+                e?.errorMsg ||
+                e?.message ||
+                (typeof e?.error === "string" ? e.error : null) ||
+                (() => {
+                  try {
+                    return JSON.stringify(e);
+                  } catch {
+                    return "Voice connection error.";
+                  }
+                })();
+          setError(String(msg));
         };
 
         vapi.on("call-start", onCallStart);
@@ -128,35 +138,16 @@ export default function InterviewPage() {
         vapi.on("message", onMessage);
         vapi.on("error", onError);
 
-        // System prompt overlay with candidate context
-        const systemPrompt = `You are a professional, warm-but-rigorous mock interviewer.
-Role being interviewed: ${setup.jobRole}
-Candidate level: ${setup.experienceLevel}
-Target interview duration: ${setup.durationMinutes} minutes.
-
-Interview format:
-1. Introduce yourself briefly (name yourself "Aria, your AI interviewer") and explain the format in 1-2 sentences.
-2. Ask a mix of technical and behavioral questions calibrated to the role and level.
-3. Ask ONE question at a time. Wait for the candidate to finish speaking before continuing.
-4. When appropriate, ask a specific follow-up that probes deeper into their answer.
-5. Keep your turns concise. Do not lecture. Do not answer the questions yourself.
-6. After roughly ${setup.durationMinutes} minutes of conversation, thank the candidate and end the interview politely.
-
-Tone: calm, professional, curious. Do not reveal that you are an AI unless asked.`;
-
+        // Note: we intentionally do NOT override `model` here. Vapi requires
+        // `model.provider` when overriding model config, and the assistant's
+        // provider is already configured on the Vapi dashboard. We pass only
+        // safe overrides: dynamic variables (for {{role}}/{{experienceLevel}}/
+        // {{duration}} placeholders in the dashboard prompt) and firstMessage.
         await vapi.start(cfg.vapiAssistantId, {
           variableValues: {
             role: setup.jobRole,
             experienceLevel: setup.experienceLevel,
             duration: String(setup.durationMinutes),
-          },
-          model: {
-            messages: [
-              {
-                role: "system",
-                content: systemPrompt,
-              },
-            ],
           },
           firstMessage: `Hi, I'm Aria — your AI interviewer for today. We'll spend about ${setup.durationMinutes} minutes on a mock interview for the ${setup.jobRole} role at the ${setup.experienceLevel} level. I'll ask a mix of technical and behavioral questions, and I'll dig in with follow-ups. Ready to begin?`,
         });
