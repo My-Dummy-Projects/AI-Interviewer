@@ -19,8 +19,6 @@ import {
   Settings,
   FileText,
   Check,
-  Minus,
-  Plus,
   Star,
   Zap,
   Users,
@@ -1033,7 +1031,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-// Suppress unused imports (kept for future icon usage)
-void Minus;
-void Plus;

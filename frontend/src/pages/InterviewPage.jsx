@@ -82,29 +82,22 @@ export default function InterviewPage() {
         vapiRef.current = vapi;
 
         const onCallStart = () => {
-          console.log("[Vapi] call-start");
           startedAtRef.current = Date.now();
           setStatus("listening");
           toast.success("Interview started.");
         };
         const onCallEnd = () => {
-          console.log("[Vapi] call-end");
           setStatus("ended");
           setEnded(true);
         };
         const onSpeechStart = () => {
-          console.log("[Vapi] speech-start (assistant)");
           setStatus("speaking");
         };
         const onSpeechEnd = () => {
-          console.log("[Vapi] speech-end (assistant)");
           setStatus("listening");
         };
-        const onVolumeLevel = (v) => {
-          if (v > 0.3) console.debug("[Vapi] volume", v.toFixed(2));
-        };
+        const onVolumeLevel = () => {};
         const onMessage = (msg) => {
-          console.log("[Vapi] message", msg?.type, msg);
           if (!msg || msg.type !== "transcript") return;
           const role = msg.role === "user" ? "user" : "assistant";
           const text = msg.transcript || "";
@@ -120,7 +113,6 @@ export default function InterviewPage() {
           setTranscript(transcriptRef.current);
         };
         const onError = (e) => {
-          console.error("Vapi error", e);
           setStatus("error");
           const msg =
             typeof e === "string"
@@ -156,7 +148,6 @@ export default function InterviewPage() {
           firstMessage: `Hi, I'm Aria — your Voxa interviewer for today. We'll spend about ${setup.durationMinutes} minutes on a mock interview for the ${setup.jobRole} role at the ${setup.experienceLevel} level. I'll ask a mix of technical and behavioral questions, and I'll dig in with follow-ups. Ready to begin?`,
         });
       } catch (e) {
-        console.error(e);
         setStatus("error");
         setError(e?.message || "Failed to start the interview.");
       }
@@ -177,13 +168,9 @@ export default function InterviewPage() {
   const toggleMute = () => {
     const v = vapiRef.current;
     if (!v) return;
-    try {
-      const next = !isMuted;
-      v.setMuted(next);
-      setIsMuted(next);
-    } catch (e) {
-      console.error(e);
-    }
+    const next = !isMuted;
+    v.setMuted(next);
+    setIsMuted(next);
   };
 
   const handleEnd = async () => {
@@ -221,7 +208,6 @@ export default function InterviewPage() {
       setReport(data);
       navigate("/report");
     } catch (e) {
-      console.error(e);
       toast.error("Could not generate feedback. Please try again.");
       setSubmitting(false);
     }
