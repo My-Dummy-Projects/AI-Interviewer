@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Mic, MicOff, PhoneOff, Loader2, AlertTriangle } from "lucide-react";
@@ -59,7 +59,7 @@ export default function InterviewPage() {
       }
     }, 500);
     return () => clearInterval(id);
-  }, [status, ended, durationSec]);
+  }, [status, ended, durationSec, handleEnd]);
 
   useEffect(() => {
     if (!setup) return;
@@ -157,7 +157,7 @@ export default function InterviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [setup]);
+  }, [setup, setTranscript]);
 
   useEffect(() => {
     return () => {
@@ -173,7 +173,7 @@ export default function InterviewPage() {
     setIsMuted(next);
   };
 
-  const handleEnd = async () => {
+  const handleEnd = useCallback(async () => {
     if (submitting) return;
     setSubmitting(true);
     try {
@@ -211,7 +211,7 @@ export default function InterviewPage() {
       toast.error("Could not generate feedback. Please try again.");
       setSubmitting(false);
     }
-  };
+  }, [setup, submitting, navigate, setReport]);
 
   const statusText = {
     connecting: "Connecting...",
@@ -225,7 +225,7 @@ export default function InterviewPage() {
   const showAssistantPulse = status === "speaking";
 
   const liveTurns = useMemo(() => {
-    const arr = [...transcriptRef.current];
+    const arr = [...transcript];
     if (partialsRef.current.assistant) {
       arr.push({
         role: "assistant",
