@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import axios from "axios";
 import { Mic, MicOff, PhoneOff, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -7,9 +7,13 @@ import { Button } from "@/components/ui/button";
 import { useInterview } from "@/context/InterviewContext";
 import { getVapi, resetVapi } from "@/lib/vapiClient";
 import { VoxaLogo } from "@/components/VoxaLogo";
+import { LoadingScreen, LoadingOverlay } from "@/components/LoadingScreen";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+if (!BACKEND_URL) {
+  console.error("REACT_APP_BACKEND_URL is not set — API calls will fail.");
+}
+const API = `${BACKEND_URL || ""}/api`;
 
 function fmtTime(sec) {
   const m = Math.floor(sec / 60).toString().padStart(2, "0");
@@ -19,7 +23,7 @@ function fmtTime(sec) {
 
 export default function InterviewPage() {
   const navigate = useNavigate();
-  const { setup, transcript, setTranscript, setReport } = useInterview();
+  const { setup, transcript, setTranscript, setReport, reset } = useInterview();
 
   const [status, setStatus] = useState("connecting");
   const [error, setError] = useState(null);
@@ -34,136 +38,13 @@ export default function InterviewPage() {
   const partialsRef = useRef({ user: "", assistant: "" });
   const endedGuardRef = useRef(false);
   const configRef = useRef(null);
+  const handleEndRef = useRef(null);
 
   const durationSec = useMemo(
     () => (setup?.durationMinutes || 10) * 60,
     [setup]
   );
   const remaining = Math.max(0, durationSec - elapsed);
-
-  useEffect(() => {
-    if (!setup) navigate("/setup", { replace: true });
-  }, [setup, navigate]);
-
-  useEffect(() => {
-    if (status === "connecting" || ended) return;
-    const id = setInterval(() => {
-      if (startedAtRef.current) {
-        const s = Math.floor((Date.now() - startedAtRef.current) / 1000);
-        setElapsed(s);
-        if (s >= durationSec && !endedGuardRef.current) {
-          endedGuardRef.current = true;
-          toast.info("Time is up. Wrapping up your interview...");
-          handleEnd();
-        }
-      }
-    }, 500);
-    return () => clearInterval(id);
-  }, [status, ended, durationSec, handleEnd]);
-
-  useEffect(() => {
-    if (!setup) return;
-    let cancelled = false;
-
-    async function boot() {
-      try {
-        const { data: cfg } = await axios.get(`${API}/config`);
-        configRef.current = cfg;
-        if (!cfg.ready) {
-          setStatus("error");
-          setError(
-            "Vapi is not configured. Set VAPI_PUBLIC_KEY and VAPI_ASSISTANT_ID in backend/.env."
-          );
-          return;
-        }
-        if (cancelled) return;
-
-        const vapi = getVapi(cfg.vapiPublicKey);
-        vapiRef.current = vapi;
-
-        const onCallStart = () => {
-          startedAtRef.current = Date.now();
-          setStatus("listening");
-          toast.success("Interview started.");
-        };
-        const onCallEnd = () => {
-          setStatus("ended");
-          setEnded(true);
-        };
-        const onSpeechStart = () => {
-          setStatus("speaking");
-        };
-        const onSpeechEnd = () => {
-          setStatus("listening");
-        };
-        const onVolumeLevel = () => {};
-        const onMessage = (msg) => {
-          if (!msg || msg.type !== "transcript") return;
-          const role = msg.role === "user" ? "user" : "assistant";
-          const text = msg.transcript || "";
-          if (!text) return;
-          if (msg.transcriptType === "partial") {
-            partialsRef.current[role] = text;
-            setTranscript([...transcriptRef.current]);
-            return;
-          }
-          partialsRef.current[role] = "";
-          const turn = { role, text, timestamp: Date.now() };
-          transcriptRef.current = [...transcriptRef.current, turn];
-          setTranscript(transcriptRef.current);
-        };
-        const onError = (e) => {
-          setStatus("error");
-          const msg =
-            typeof e === "string"
-              ? e
-              : e?.error?.message ||
-                e?.errorMsg ||
-                e?.message ||
-                (typeof e?.error === "string" ? e.error : null) ||
-                (() => {
-                  try {
-                    return JSON.stringify(e);
-                  } catch {
-                    return "Voice connection error.";
-                  }
-                })();
-          setError(String(msg));
-        };
-
-        vapi.on("call-start", onCallStart);
-        vapi.on("call-end", onCallEnd);
-        vapi.on("speech-start", onSpeechStart);
-        vapi.on("speech-end", onSpeechEnd);
-        vapi.on("volume-level", onVolumeLevel);
-        vapi.on("message", onMessage);
-        vapi.on("error", onError);
-
-        await vapi.start(cfg.vapiAssistantId, {
-          variableValues: {
-            role: setup.jobRole,
-            experienceLevel: setup.experienceLevel,
-            duration: String(setup.durationMinutes),
-          },
-          firstMessage: `Hi, I'm Aria — your Voxa interviewer for today. We'll spend about ${setup.durationMinutes} minutes on a mock interview for the ${setup.jobRole} role at the ${setup.experienceLevel} level. I'll ask a mix of technical and behavioral questions, and I'll dig in with follow-ups. Ready to begin?`,
-        });
-      } catch (e) {
-        setStatus("error");
-        setError(e?.message || "Failed to start the interview.");
-      }
-    }
-
-    boot();
-    return () => {
-      cancelled = true;
-    };
-  }, [setup, setTranscript]);
-
-  useEffect(() => {
-    return () => {
-      resetVapi();
-    };
-  }, []);
 
   const toggleMute = () => {
     const v = vapiRef.current;
@@ -198,6 +79,7 @@ export default function InterviewPage() {
 
       if (payload.transcript.length === 0) {
         toast.error("No transcript captured. Try again with a longer session.");
+        reset();
         navigate("/setup", { replace: true });
         return;
       }
@@ -211,7 +93,152 @@ export default function InterviewPage() {
       toast.error("Could not generate feedback. Please try again.");
       setSubmitting(false);
     }
-  }, [setup, submitting, navigate, setReport]);
+  }, [setup, submitting, navigate, setReport, reset]);
+  handleEndRef.current = handleEnd;
+
+  useEffect(() => {
+    if (status === "connecting" || ended) return;
+    let destroyed = false;
+    const id = setInterval(() => {
+      if (destroyed) return;
+      if (startedAtRef.current) {
+        const s = Math.floor((Date.now() - startedAtRef.current) / 1000);
+        setElapsed(s);
+        if (s >= durationSec && !endedGuardRef.current) {
+          endedGuardRef.current = true;
+          toast.info("Time is up. Wrapping up your interview...");
+          handleEndRef.current?.();
+        }
+      }
+    }, 500);
+    return () => {
+      destroyed = true;
+      clearInterval(id);
+    };
+  }, [status, ended, durationSec]);
+
+  useEffect(() => {
+    if (!setup) return;
+    let destroyed = false;
+    let currentVapi = null;
+
+    const onCallStart = () => {
+      if (destroyed) return;
+      startedAtRef.current = Date.now();
+      setStatus("listening");
+      toast.success("Interview started.");
+    };
+    const onCallEnd = () => {
+      if (destroyed) return;
+      setStatus("ended");
+      setEnded(true);
+    };
+    const onSpeechStart = () => {
+      if (destroyed) return;
+      setStatus("speaking");
+    };
+    const onSpeechEnd = () => {
+      if (destroyed) return;
+      setStatus("listening");
+    };
+    const onVolumeLevel = () => {};
+    const onMessage = (msg) => {
+      if (destroyed || !msg || msg.type !== "transcript") return;
+      const role = msg.role === "user" ? "user" : "assistant";
+      const text = msg.transcript || "";
+      if (!text) return;
+      if (msg.transcriptType === "partial") {
+        partialsRef.current[role] = text;
+        setTranscript(transcriptRef.current);
+        return;
+      }
+      partialsRef.current[role] = "";
+      const turn = { role, text, timestamp: Date.now() };
+      transcriptRef.current = [...transcriptRef.current, turn];
+      setTranscript(transcriptRef.current);
+    };
+    const onError = (e) => {
+      if (destroyed) return;
+      setStatus("error");
+      const msg =
+        typeof e === "string"
+          ? e
+          : e?.error?.message ||
+            e?.errorMsg ||
+            e?.message ||
+            (typeof e?.error === "string" ? e.error : null) ||
+            (() => {
+              try {
+                return JSON.stringify(e);
+              } catch {
+                return "Voice connection error.";
+              }
+            })();
+      setError(String(msg));
+    };
+
+    async function boot() {
+      try {
+        const { data: cfg } = await axios.get(`${API}/config`);
+        if (destroyed) return;
+        configRef.current = cfg;
+        if (!cfg.ready) {
+          setStatus("error");
+          setError(
+            "Vapi is not configured. Set VAPI_PUBLIC_KEY and VAPI_ASSISTANT_ID in backend/.env."
+          );
+          return;
+        }
+
+        const vapi = getVapi(cfg.vapiPublicKey);
+        vapiRef.current = vapi;
+        currentVapi = vapi;
+
+        vapi.on("call-start", onCallStart);
+        vapi.on("call-end", onCallEnd);
+        vapi.on("speech-start", onSpeechStart);
+        vapi.on("speech-end", onSpeechEnd);
+        vapi.on("volume-level", onVolumeLevel);
+        vapi.on("message", onMessage);
+        vapi.on("error", onError);
+
+        if (destroyed) return;
+        await vapi.start(cfg.vapiAssistantId, {
+          variableValues: {
+            role: setup.jobRole,
+            experienceLevel: setup.experienceLevel,
+            duration: String(setup.durationMinutes),
+          },
+          firstMessage: `Hi, I'm Aria — your Voxa interviewer for today. We'll spend about ${setup.durationMinutes} minutes on a mock interview for the ${setup.jobRole} role at the ${setup.experienceLevel} level. I'll ask a mix of technical and behavioral questions, and I'll dig in with follow-ups. Ready to begin?`,
+        });
+      } catch (e) {
+        if (!destroyed) {
+          setStatus("error");
+          setError(e?.message || "Failed to start the interview.");
+        }
+      }
+    }
+
+    boot();
+    return () => {
+      destroyed = true;
+      if (currentVapi) {
+        currentVapi.off("call-start", onCallStart);
+        currentVapi.off("call-end", onCallEnd);
+        currentVapi.off("speech-start", onSpeechStart);
+        currentVapi.off("speech-end", onSpeechEnd);
+        currentVapi.off("volume-level", onVolumeLevel);
+        currentVapi.off("message", onMessage);
+        currentVapi.off("error", onError);
+      }
+    };
+  }, [setup, setTranscript]);
+
+  useEffect(() => {
+    return () => {
+      resetVapi();
+    };
+  }, []);
 
   const statusText = {
     connecting: "Connecting...",
@@ -245,8 +272,24 @@ export default function InterviewPage() {
     return arr;
   }, [transcript]);
 
+  if (!setup) return <Navigate to="/setup" replace />;
+
+  if (status === "connecting") {
+    return (
+      <LoadingScreen
+        message="Connecting to voice interview..."
+        submessage="Establishing secure connection"
+      />
+    );
+  }
+
   return (
     <div className="relative min-h-screen bg-[#050505] text-white flex flex-col overflow-x-hidden">
+      <LoadingOverlay
+        show={submitting}
+        message="Generating your report..."
+        submessage="This may take up to 90 seconds"
+      />
       <div className="ambient-glow" />
 
       {/* Top bar */}
