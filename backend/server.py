@@ -502,7 +502,7 @@ async def generate_feedback(req: FeedbackRequest, current_user=Depends(_try_get_
                 temperature=0.3,
                 max_tokens=2048,
                 extra_headers={
-                    "HTTP-Referer": "https://voice-interview-demo.preview.emergentagent.com",
+                    "HTTP-Referer": "https://dash-improve.preview.emergentagent.com",
                     "X-Title": "AI Voice Mock Interview",
                 },
             )
