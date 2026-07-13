@@ -469,7 +469,7 @@ export default function DashboardPage() {
       loadStats();
       loadInterviews();
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, navigate]);
 
   const loadProfile = async () => {
     try {

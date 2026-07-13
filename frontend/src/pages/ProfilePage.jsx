@@ -38,7 +38,7 @@ export default function ProfilePage() {
     if (user) {
       loadProfile();
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, navigate]);
 
   const loadProfile = async () => {
     try {
