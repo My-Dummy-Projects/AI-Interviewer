@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft, Mic, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useInterview } from "@/context/InterviewContext";
+import { useAuth } from "@/context/AuthContext";
 import { VoxaLogo } from "@/components/VoxaLogo";
 
 const EXPERIENCE_LEVELS = [
@@ -32,10 +33,13 @@ const DURATIONS = [
 
 export default function SetupPage() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const { setSetup, reset } = useInterview();
   const [jobRole, setJobRole] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
   const [duration, setDuration] = useState("");
+
+  if (!loading && !user) return <Navigate to="/signin" replace />;
 
   const canStart = jobRole.trim().length > 1 && experienceLevel && duration;
 
@@ -63,7 +67,7 @@ export default function SetupPage() {
           </Link>
           <div className="hidden md:flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-zinc-500">
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>No signup · Runs locally in browser</span>
+            <span>Secure · Voice never leaves the call</span>
           </div>
           <Link to="/" className="md:hidden">
             <Button variant="outline" className="h-9 px-3 rounded-full bg-transparent border-white/15 hover:bg-white/5 text-white">

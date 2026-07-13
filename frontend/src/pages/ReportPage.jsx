@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React from "react";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { RotateCcw, ArrowLeft, CheckCircle2, TrendingUp, TrendingDown, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,11 +52,7 @@ export default function ReportPage() {
   const navigate = useNavigate();
   const { report, setup, reset } = useInterview();
 
-  useEffect(() => {
-    if (!report) navigate("/", { replace: true });
-  }, [report, navigate]);
-
-  if (!report) return null;
+  if (!report) return <Navigate to="/" replace />;
 
   const rec = RECS[report.finalRecommendation] || RECS["Lean Hire"];
 

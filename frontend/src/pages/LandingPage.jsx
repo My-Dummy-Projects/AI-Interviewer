@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
 import {
   ArrowRight,
   Mic,
@@ -19,8 +20,6 @@ import {
   Settings,
   FileText,
   Check,
-  Minus,
-  Plus,
   Star,
   Zap,
   Users,
@@ -47,6 +46,7 @@ const NAV_LINKS = [
 
 function Nav() {
   const [scrolled, setScrolled] = useState(false);
+  const { user } = useAuth();
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
@@ -75,17 +75,38 @@ function Nav() {
               {l.label}
             </a>
           ))}
+          {user ? (
+            <Link to="/dashboard" className="text-sm text-zinc-400 hover:text-white transition-colors duration-200">
+              Dashboard
+            </Link>
+          ) : (
+            <Link to="/signin" className="text-sm text-zinc-400 hover:text-white transition-colors duration-200">
+              Sign in
+            </Link>
+          )}
         </nav>
         <div className="flex items-center gap-2">
-          <Link to="/setup">
-            <Button
-              data-testid="nav-cta-start"
-              className="rounded-full bg-white hover:bg-zinc-200 text-black h-9 px-4 text-sm font-semibold"
-            >
-              Start free
-              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-            </Button>
-          </Link>
+          {user ? (
+            <Link to="/setup">
+              <Button
+                data-testid="nav-cta-start"
+                className="rounded-full bg-white hover:bg-zinc-200 text-black h-9 px-4 text-sm font-semibold"
+              >
+                New Interview
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/signin">
+              <Button
+                data-testid="nav-cta-start"
+                className="rounded-full bg-white hover:bg-zinc-200 text-black h-9 px-4 text-sm font-semibold"
+              >
+                Get started
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </div>
@@ -360,7 +381,7 @@ const PRICING = [
       "Voice-first, follow-up aware",
       "Structured scorecard",
       "Any role, any level",
-      "No signup required",
+      "Free account required",
     ],
     cta: { label: "Start free", to: "/setup", primary: true, testid: "pricing-free-cta" },
   },
@@ -474,7 +495,7 @@ function PricingCard({ tier }) {
 const FAQS = [
   {
     q: "Is Voxa really free?",
-    a: "Yes. The current MVP is 100% free and requires no signup. You can start an interview in under 30 seconds. Paid tiers (Pro, Team) will layer on persistence, custom rubrics, and team dashboards — but the core voice-first interview loop will always have a free path.",
+    a: "Yes. The current MVP is 100% free. Just create an account and you can start an interview in under 30 seconds. Paid tiers (Pro, Team) will layer on custom rubrics and team dashboards — but the core voice-first interview loop will always have a free path.",
   },
   {
     q: "How does the voice interview work?",
@@ -530,6 +551,8 @@ function FAQ() {
 
 /* -------- Main Page -------- */
 export default function LandingPage() {
+  const { user } = useAuth();
+
   return (
     <div className="relative min-h-screen bg-[#050505] text-white overflow-x-hidden">
       <Nav />
@@ -584,12 +607,12 @@ export default function LandingPage() {
                 transition={{ duration: 0.6, delay: 0.15 }}
                 className="mt-8 flex flex-wrap items-center gap-3"
               >
-                <Link to="/setup">
+                <Link to={user ? "/setup" : "/signin"}>
                   <Button
                     data-testid="hero-cta-primary"
                     className="rounded-full h-12 px-6 bg-white hover:bg-zinc-200 text-black text-sm font-semibold group"
                   >
-                    Start mock interview
+                    {user ? "Start mock interview" : "Sign in to start"}
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                   </Button>
                 </Link>
@@ -611,7 +634,7 @@ export default function LandingPage() {
                 className="mt-10 flex items-center gap-6 text-xs text-zinc-500 font-mono tracking-wider uppercase"
               >
                 <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="h-3.5 w-3.5" /> No signup
+                  <ShieldCheck className="h-3.5 w-3.5" /> Secure & private
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Timer className="h-3.5 w-3.5" /> ~10 min sessions
@@ -740,12 +763,12 @@ export default function LandingPage() {
                 <span className="text-zinc-500">One coffee.</span>
               </h2>
             </div>
-            <Link to="/setup" className="hidden md:block">
+            <Link to={user ? "/setup" : "/signin"} className="hidden md:block">
               <Button
                 data-testid="how-cta"
                 className="rounded-full bg-white hover:bg-zinc-200 text-black h-11 px-5 font-semibold"
               >
-                Try it now
+                {user ? "Try it now" : "Sign in to start"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -966,15 +989,15 @@ export default function LandingPage() {
               </h2>
               <p className="mt-4 text-lg text-zinc-400 max-w-2xl">
                 Ten minutes with Voxa now beats an hour of scrolling job boards.
-                No signup. No credit card. Just talk.
+                Sign up free. No credit card. Just talk.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link to="/setup">
+                <Link to={user ? "/setup" : "/signin"}>
                   <Button
                     data-testid="final-cta-primary"
                     className="rounded-full h-12 px-6 bg-white hover:bg-zinc-200 text-black text-sm font-semibold group"
                   >
-                    Start free interview
+                    {user ? "Start free interview" : "Sign in to start"}
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                   </Button>
                 </Link>
@@ -1008,7 +1031,7 @@ export default function LandingPage() {
               <ul className="mt-4 space-y-2 text-sm">
                 <li><a href="#features" className="text-zinc-400 hover:text-white transition-colors">Features</a></li>
                 <li><a href="#pricing" className="text-zinc-400 hover:text-white transition-colors">Pricing</a></li>
-                <li><Link to="/setup" className="text-zinc-400 hover:text-white transition-colors">Start interview</Link></li>
+                <li><Link to={user ? "/setup" : "/signin"} className="text-zinc-400 hover:text-white transition-colors">Start interview</Link></li>
               </ul>
             </div>
             <div>
@@ -1033,7 +1056,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-// Suppress unused imports (kept for future icon usage)
-void Minus;
-void Plus;
