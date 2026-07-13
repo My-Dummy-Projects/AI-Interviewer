@@ -39,6 +39,12 @@ const api = {
     return data;
   },
 
+  // Dashboard
+  async getDashboardStats() {
+    const { data } = await axios.get(`${API}/user/dashboard-stats`, { headers: authHeaders() });
+    return data;
+  },
+
   // Interviews
   async getInterviews() {
     const { data } = await axios.get(`${API}/user/interviews`, { headers: authHeaders() });

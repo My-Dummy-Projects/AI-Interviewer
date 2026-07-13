@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Mail, Lock, Eye, EyeOff, AlertTriangle, Inbox } from "lucide-react";
+import { ArrowRight, Mail, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,26 +18,19 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [unconfirmed, setUnconfirmed] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) return;
     setLoading(true);
     setError("");
-    setUnconfirmed(false);
     try {
       await signin(email.trim(), password);
       toast.success("Signed in successfully");
       navigate("/dashboard");
     } catch (err) {
       const detail = err?.response?.data?.detail || "";
-      if (detail.toLowerCase().includes("email not confirmed") || detail.toLowerCase().includes("email not verified")) {
-        setUnconfirmed(true);
-        setError("");
-      } else {
-        setError(detail || "Invalid email or password");
-      }
+      setError(detail || "Invalid email or password");
     } finally {
       setLoading(false);
     }
@@ -87,22 +80,6 @@ export default function SignInPage() {
             onSubmit={handleSubmit}
             className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 md:p-8 space-y-5"
           >
-            {unconfirmed && (
-              <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm">
-                <div className="flex items-start gap-2">
-                  <Inbox className="h-5 w-5 mt-0.5 shrink-0 text-yellow-400" />
-                  <div>
-                    <p className="font-semibold text-yellow-200">Email not yet confirmed</p>
-                    <p className="mt-1 text-yellow-200/80">
-                      Check your inbox (and spam folder) for the confirmation link we sent to{" "}
-                      <strong className="text-yellow-100">{email}</strong>.
-                      You need to click it before signing in.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {error && (
               <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
                 <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-red-400" />
@@ -121,7 +98,7 @@ export default function SignInPage() {
                   type="email"
                   data-testid="signin-email-input"
                   value={email}
-                  onChange={(e) => { setEmail(e.target.value); setUnconfirmed(false); }}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   className="h-12 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-base text-white placeholder:text-zinc-600 pl-10"
                   required

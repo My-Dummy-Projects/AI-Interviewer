@@ -7,7 +7,7 @@ import json
 import logging
 import re
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Literal, Optional
 from openai import OpenAI
 from supabase import create_client, Client as SupabaseClient
@@ -140,6 +140,17 @@ class InterviewHistoryResponse(BaseModel):
     total: int
 
 
+class DashboardStats(BaseModel):
+    totalInterviews: int
+    averageScore: float
+    bestScore: int
+    worstScore: int
+    totalPracticeMinutes: int
+    recentScores: List[int]
+    scoreDistribution: dict
+    skillAverages: dict
+
+
 # ---------- Auth Helpers ----------
 async def get_current_user(authorization: Optional[str] = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
@@ -200,11 +211,14 @@ async def signin(req: SignInRequest):
 
 
 @api_router.post("/auth/signout")
-async def signout(current_user=Depends(get_current_user)):
+async def signout(authorization: Optional[str] = Header(None)):
     if not supabase:
         raise HTTPException(status_code=503, detail="Supabase not configured")
     try:
-        supabase.auth.sign_out()
+        if authorization and authorization.startswith("Bearer "):
+            token = authorization.split(" ")[1]
+            user = supabase.auth.get_user(token)
+            supabase.auth.admin.sign_out(user.user.id)
         return {"message": "Signed out successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -290,6 +304,56 @@ async def get_interviews(current_user=Depends(get_current_user)):
             completedAt=str(doc.get("created_at", "")),
         ))
     return InterviewHistoryResponse(interviews=interviews, total=len(interviews))
+
+
+@api_router.get("/user/dashboard-stats", response_model=DashboardStats)
+async def get_dashboard_stats(current_user=Depends(get_current_user)):
+    user_id = current_user.id
+    collection = db["interviews"]
+    cursor = collection.find({"user_id": user_id}).sort("created_at", -1).limit(50)
+    interviews = []
+    async for doc in cursor:
+        interviews.append(doc)
+
+    if not interviews:
+        return DashboardStats(
+            totalInterviews=0,
+            averageScore=0.0,
+            bestScore=0,
+            worstScore=0,
+            totalPracticeMinutes=0,
+            recentScores=[],
+            scoreDistribution={},
+            skillAverages={},
+        )
+
+    scores = [i.get("overallScore", 0) for i in interviews]
+    report_scores = [i.get("report", {}).get("skills", {}) for i in interviews if i.get("report")]
+    total_minutes = sum(i.get("durationMinutes", 0) for i in interviews)
+
+    skill_avgs = {}
+    if report_scores:
+        for key in ("technical", "communication", "problemSolving", "confidence"):
+            vals = [s.get(key, 0) for s in report_scores if s.get(key) is not None]
+            skill_avgs[key] = round(sum(vals) / len(vals), 1) if vals else 0
+
+    dist = {"0-25": 0, "26-50": 0, "51-75": 0, "76-100": 0}
+    for s in scores:
+        if s <= 25: dist["0-25"] += 1
+        elif s <= 50: dist["26-50"] += 1
+        elif s <= 75: dist["51-75"] += 1
+        else: dist["76-100"] += 1
+
+    return DashboardStats(
+        totalInterviews=len(interviews),
+        averageScore=round(sum(scores) / len(scores), 1),
+        bestScore=max(scores),
+        worstScore=min(scores),
+        totalPracticeMinutes=total_minutes,
+        recentScores=scores[:10][::-1],
+        scoreDistribution=dist,
+        skillAverages=skill_avgs,
+    )
 
 
 def _build_feedback_prompt(req: FeedbackRequest) -> str:
