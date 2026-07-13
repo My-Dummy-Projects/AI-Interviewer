@@ -1,5 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -11,25 +10,28 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Literal, Optional
 from openai import OpenAI
+from supabase import create_client, Client as SupabaseClient
+from datetime import datetime
 
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection (kept as-is for template compatibility; not used for persistence in MVP)
+# MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# Supabase client (service role for admin operations)
+SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+supabase: Optional[SupabaseClient] = None
+if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
 # OpenRouter (OpenAI-compatible)
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
 OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-oss-20b:free')
-OPENROUTER_FALLBACK_MODELS = [
-    m.strip()
-    for m in os.environ.get('OPENROUTER_FALLBACK_MODELS', '').split(',')
-    if m.strip()
-]
-
 VAPI_PUBLIC_KEY = os.environ.get('VAPI_PUBLIC_KEY', '')
 VAPI_ASSISTANT_ID = os.environ.get('VAPI_ASSISTANT_ID', '')
 
@@ -88,6 +90,71 @@ class ConfigResponse(BaseModel):
     ready: bool
 
 
+# ---------- Auth Models ----------
+class SignUpRequest(BaseModel):
+    email: str
+    password: str
+
+
+class SignInRequest(BaseModel):
+    email: str
+    password: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+
+
+class AuthResponse(BaseModel):
+    user: dict
+    session: dict
+
+
+class UserProfileUpdate(BaseModel):
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
+
+
+class UserProfileResponse(BaseModel):
+    id: str
+    email: str
+    display_name: str
+    avatar_url: str
+    bio: str
+    created_at: str
+    updated_at: str
+
+
+class InterviewSummary(BaseModel):
+    id: str
+    jobRole: str
+    experienceLevel: str
+    durationMinutes: int
+    overallScore: int
+    completedAt: str
+
+
+class InterviewHistoryResponse(BaseModel):
+    interviews: List[InterviewSummary]
+    total: int
+
+
+# ---------- Auth Helpers ----------
+async def get_current_user(authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    token = authorization.split(" ")[1]
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    try:
+        resp = supabase.auth.get_user(token)
+        return resp.user
+    except Exception as e:
+        logger.warning(f"Auth check failed: {e}")
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
 # ---------- Routes ----------
 @api_router.get("/")
 async def root():
@@ -101,6 +168,128 @@ async def get_config():
         vapiAssistantId=VAPI_ASSISTANT_ID,
         ready=bool(VAPI_PUBLIC_KEY and VAPI_ASSISTANT_ID),
     )
+
+
+# ---------- Auth Routes ----------
+@api_router.post("/auth/signup", response_model=AuthResponse)
+async def signup(req: SignUpRequest):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    try:
+        resp = supabase.auth.sign_up({"email": req.email, "password": req.password})
+        return AuthResponse(
+            user=resp.user.model_dump() if hasattr(resp.user, 'model_dump') else dict(resp.user),
+            session=resp.session.model_dump() if hasattr(resp.session, 'model_dump') else dict(resp.session) if resp.session else {},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.post("/auth/signin", response_model=AuthResponse)
+async def signin(req: SignInRequest):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    try:
+        resp = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
+        return AuthResponse(
+            user=resp.user.model_dump() if hasattr(resp.user, 'model_dump') else dict(resp.user),
+            session=resp.session.model_dump() if hasattr(resp.session, 'model_dump') else dict(resp.session),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+
+@api_router.post("/auth/signout")
+async def signout(current_user=Depends(get_current_user)):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    try:
+        supabase.auth.sign_out()
+        return {"message": "Signed out successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.post("/auth/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    try:
+        supabase.auth.reset_password_email(req.email)
+        return {"message": "Password reset email sent"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# ---------- User Profile Routes ----------
+@api_router.get("/user/profile", response_model=UserProfileResponse)
+async def get_profile(current_user=Depends(get_current_user)):
+    user_id = current_user.id
+    collection = db["user_profiles"]
+    profile = await collection.find_one({"user_id": user_id})
+    if not profile:
+        profile = {
+            "user_id": user_id,
+            "email": current_user.email,
+            "display_name": current_user.email.split("@")[0],
+            "avatar_url": "",
+            "bio": "",
+            "created_at": str(current_user.created_at or ""),
+            "updated_at": str(current_user.created_at or ""),
+        }
+        await collection.insert_one(profile)
+    return UserProfileResponse(
+        id=str(profile["_id"]),
+        email=profile.get("email", current_user.email),
+        display_name=profile.get("display_name", current_user.email.split("@")[0]),
+        avatar_url=profile.get("avatar_url", ""),
+        bio=profile.get("bio", ""),
+        created_at=str(profile.get("created_at", "")),
+        updated_at=str(profile.get("updated_at", "")),
+    )
+
+
+@api_router.put("/user/profile", response_model=UserProfileResponse)
+async def update_profile(req: UserProfileUpdate, current_user=Depends(get_current_user)):
+    user_id = current_user.id
+    collection = db["user_profiles"]
+    update_data = {k: v for k, v in req.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    update_data["updated_at"] = str(datetime.utcnow())
+    result = await collection.update_one(
+        {"user_id": user_id},
+        {"$set": update_data},
+        upsert=True,
+    )
+    profile = await collection.find_one({"user_id": user_id})
+    return UserProfileResponse(
+        id=str(profile["_id"]),
+        email=profile.get("email", current_user.email),
+        display_name=profile.get("display_name", ""),
+        avatar_url=profile.get("avatar_url", ""),
+        bio=profile.get("bio", ""),
+        created_at=str(profile.get("created_at", "")),
+        updated_at=str(profile.get("updated_at", "")),
+    )
+
+
+@api_router.get("/user/interviews", response_model=InterviewHistoryResponse)
+async def get_interviews(current_user=Depends(get_current_user)):
+    user_id = current_user.id
+    collection = db["interviews"]
+    cursor = collection.find({"user_id": user_id}).sort("created_at", -1).limit(50)
+    interviews = []
+    async for doc in cursor:
+        interviews.append(InterviewSummary(
+            id=str(doc["_id"]),
+            jobRole=doc.get("jobRole", ""),
+            experienceLevel=doc.get("experienceLevel", ""),
+            durationMinutes=doc.get("durationMinutes", 0),
+            overallScore=doc.get("overallScore", 0),
+            completedAt=str(doc.get("created_at", "")),
+        ))
+    return InterviewHistoryResponse(interviews=interviews, total=len(interviews))
 
 
 def _build_feedback_prompt(req: FeedbackRequest) -> str:
@@ -209,45 +398,74 @@ def _fallback_report(req: FeedbackRequest, reason: str) -> FeedbackReport:
     )
 
 
+async def _try_get_user(authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization.split(" ")[1]
+    if not supabase:
+        return None
+    try:
+        resp = supabase.auth.get_user(token)
+        return resp.user
+    except Exception:
+        return None
+
+
 @api_router.post("/interview/feedback", response_model=FeedbackReport)
-async def generate_feedback(req: FeedbackRequest):
+async def generate_feedback(req: FeedbackRequest, current_user=Depends(_try_get_user)):
     if not req.transcript:
         raise HTTPException(status_code=400, detail="Transcript is empty.")
 
     if not OPENROUTER_API_KEY:
         logger.warning("OPENROUTER_API_KEY missing, returning fallback report.")
-        return _fallback_report(req, "OPENROUTER_API_KEY is not configured on the server.")
-
-    prompt = _build_feedback_prompt(req)
-
-    try:
-        oai_client = OpenAI(
-            api_key=OPENROUTER_API_KEY,
-            base_url="https://openrouter.ai/api/v1",
-        )
-        completion = oai_client.chat.completions.create(
-            model=OPENROUTER_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a strict, expert interview evaluator. You always respond with valid JSON only.",
+        report = _fallback_report(req, "OPENROUTER_API_KEY is not configured on the server.")
+    else:
+        prompt = _build_feedback_prompt(req)
+        try:
+            oai_client = OpenAI(
+                api_key=OPENROUTER_API_KEY,
+                base_url="https://openrouter.ai/api/v1",
+            )
+            completion = oai_client.chat.completions.create(
+                model=OPENROUTER_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a strict, expert interview evaluator. You always respond with valid JSON only.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.3,
+                max_tokens=2048,
+                extra_headers={
+                    "HTTP-Referer": "https://voice-interview-demo.preview.emergentagent.com",
+                    "X-Title": "AI Voice Mock Interview",
                 },
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.3,
-            max_tokens=2048,
-            extra_headers={
-                "HTTP-Referer": "https://voice-interview-demo.preview.emergentagent.com",
-                "X-Title": "AI Voice Mock Interview",
+            )
+            raw = completion.choices[0].message.content or ""
+            data = _extract_json(raw)
+            report = FeedbackReport(**data)
+        except Exception as e:
+            logger.exception("Feedback generation failed")
+            report = _fallback_report(req, f"LLM error: {type(e).__name__}: {str(e)[:200]}")
 
-            },
-        )
-        raw = completion.choices[0].message.content or ""
-        data = _extract_json(raw)
-        return FeedbackReport(**data)
-    except Exception as e:
-        logger.exception("Feedback generation failed")
-        return _fallback_report(req, f"LLM error: {type(e).__name__}: {str(e)[:200]}")
+    if current_user:
+        try:
+            interviews_coll = db["interviews"]
+            await interviews_coll.insert_one({
+                "user_id": current_user.id,
+                "jobRole": req.jobRole,
+                "experienceLevel": req.experienceLevel,
+                "durationMinutes": req.durationMinutes,
+                "transcript": [t.model_dump() for t in req.transcript],
+                "report": report.model_dump(),
+                "overallScore": report.overallScore,
+                "created_at": datetime.utcnow(),
+            })
+        except Exception as e:
+            logger.warning(f"Failed to save interview history: {e}")
+
+    return report
 
 
 # Mount router

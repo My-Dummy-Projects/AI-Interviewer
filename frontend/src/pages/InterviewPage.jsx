@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
-import axios from "axios";
 import { Mic, MicOff, PhoneOff, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,12 +7,7 @@ import { useInterview } from "@/context/InterviewContext";
 import { getVapi, resetVapi } from "@/lib/vapiClient";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { LoadingScreen, LoadingOverlay } from "@/components/LoadingScreen";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-if (!BACKEND_URL) {
-  console.error("REACT_APP_BACKEND_URL is not set — API calls will fail.");
-}
-const API = `${BACKEND_URL || ""}/api`;
+import api from "@/lib/api";
 
 function fmtTime(sec) {
   const m = Math.floor(sec / 60).toString().padStart(2, "0");
@@ -84,9 +78,7 @@ export default function InterviewPage() {
         return;
       }
 
-      const { data } = await axios.post(`${API}/interview/feedback`, payload, {
-        timeout: 90_000,
-      });
+      const data = await api.submitFeedback(payload);
       setReport(data);
       navigate("/report");
     } catch (e) {
@@ -179,7 +171,7 @@ export default function InterviewPage() {
 
     async function boot() {
       try {
-        const { data: cfg } = await axios.get(`${API}/config`);
+        const cfg = await api.getConfig();
         if (destroyed) return;
         configRef.current = cfg;
         if (!cfg.ready) {
