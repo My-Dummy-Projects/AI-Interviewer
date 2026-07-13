@@ -1,6 +1,7 @@
 import React from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toaster } from "sonner";
 import { InterviewProvider } from "@/context/InterviewContext";
 import { AuthProvider } from "@/context/AuthContext";
@@ -21,6 +22,7 @@ function App() {
       <AuthProvider>
         <InterviewProvider>
           <BrowserRouter>
+            <ErrorBoundary>
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/setup" element={<SetupPage />} />
@@ -34,6 +36,7 @@ function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </ErrorBoundary>
           </BrowserRouter>
           <Toaster
             position="top-right"

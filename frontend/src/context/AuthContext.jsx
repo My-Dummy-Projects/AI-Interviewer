@@ -8,8 +8,14 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("voxa_access_token");
-    const refreshToken = localStorage.getItem("voxa_refresh_token");
+    let token, refreshToken;
+    try {
+      token = localStorage.getItem("voxa_access_token");
+      refreshToken = localStorage.getItem("voxa_refresh_token");
+    } catch {
+      token = null;
+      refreshToken = null;
+    }
 
     const restore = async () => {
       if (!token) {
@@ -18,24 +24,28 @@ export function AuthProvider({ children }) {
       }
       try {
         const profile = await api.getProfile();
-        setUser({ ...profile, id: token });
+        setUser({ ...profile, id: profile.user_id || token });
       } catch {
         if (refreshToken) {
           try {
             const data = await api.refreshToken(refreshToken);
             if (data.session?.access_token) {
-              localStorage.setItem("voxa_access_token", data.session.access_token);
-              localStorage.setItem("voxa_refresh_token", data.session.refresh_token || "");
+              try {
+                localStorage.setItem("voxa_access_token", data.session.access_token);
+                localStorage.setItem("voxa_refresh_token", data.session.refresh_token || "");
+              } catch { /* localStorage unavailable */ }
               const profile = await api.getProfile();
-              setUser({ ...profile, id: data.session.access_token });
+              setUser({ ...profile, id: profile.user_id || data.session.access_token });
               return;
             }
           } catch {
             // refresh failed
           }
         }
-        localStorage.removeItem("voxa_access_token");
-        localStorage.removeItem("voxa_refresh_token");
+        try {
+          localStorage.removeItem("voxa_access_token");
+          localStorage.removeItem("voxa_refresh_token");
+        } catch { /* localStorage unavailable */ }
       } finally {
         setLoading(false);
       }
@@ -47,9 +57,11 @@ export function AuthProvider({ children }) {
   const signup = useCallback(async (email, password) => {
     const data = await api.signup(email, password);
     if (data.session?.access_token) {
-      localStorage.setItem("voxa_access_token", data.session.access_token);
-      localStorage.setItem("voxa_refresh_token", data.session.refresh_token || "");
-      setUser({ ...data.user, id: data.session.access_token });
+      try {
+        localStorage.setItem("voxa_access_token", data.session.access_token);
+        localStorage.setItem("voxa_refresh_token", data.session.refresh_token || "");
+      } catch { /* localStorage unavailable */ }
+      setUser({ ...data.user, id: data.user?.id || data.session.access_token });
     }
     return data;
   }, []);
@@ -57,9 +69,11 @@ export function AuthProvider({ children }) {
   const signin = useCallback(async (email, password) => {
     const data = await api.signin(email, password);
     if (data.session?.access_token) {
-      localStorage.setItem("voxa_access_token", data.session.access_token);
-      localStorage.setItem("voxa_refresh_token", data.session.refresh_token || "");
-      setUser({ ...data.user, id: data.session.access_token });
+      try {
+        localStorage.setItem("voxa_access_token", data.session.access_token);
+        localStorage.setItem("voxa_refresh_token", data.session.refresh_token || "");
+      } catch { /* localStorage unavailable */ }
+      setUser({ ...data.user, id: data.user?.id || data.session.access_token });
     }
     return data;
   }, []);
@@ -70,8 +84,10 @@ export function AuthProvider({ children }) {
     } catch {
       /* ignore */
     }
-    localStorage.removeItem("voxa_access_token");
-    localStorage.removeItem("voxa_refresh_token");
+    try {
+      localStorage.removeItem("voxa_access_token");
+      localStorage.removeItem("voxa_refresh_token");
+    } catch { /* localStorage unavailable */ }
     setUser(null);
   }, []);
 

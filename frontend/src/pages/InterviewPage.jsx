@@ -402,6 +402,9 @@ export default function InterviewPage() {
             </div>
             <div
               className="p-4 h-56 overflow-y-auto space-y-3 text-sm"
+              role="log"
+              aria-live="polite"
+              aria-label="Live interview transcript"
               data-testid="live-interview-transcript"
             >
               {liveTurns.length === 0 && status !== "error" && (

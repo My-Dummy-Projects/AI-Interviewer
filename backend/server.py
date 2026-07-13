@@ -128,6 +128,7 @@ class UserProfileUpdate(BaseModel):
 
 class UserProfileResponse(BaseModel):
     id: str
+    user_id: str
     email: str
     display_name: str
     avatar_url: str
@@ -308,6 +309,7 @@ async def get_profile(current_user=Depends(get_current_user)):
     profile = result.data[0]
     return UserProfileResponse(
         id=profile["id"],
+        user_id=profile.get("user_id", user_id),
         email=profile.get("email", current_user.email),
         display_name=profile.get("display_name", current_user.email.split("@")[0]),
         avatar_url=profile.get("avatar_url", ""),
@@ -338,6 +340,7 @@ async def update_profile(req: UserProfileUpdate, current_user=Depends(get_curren
     profile = result.data[0]
     return UserProfileResponse(
         id=profile["id"],
+        user_id=profile.get("user_id", user_id),
         email=profile.get("email", current_user.email),
         display_name=profile.get("display_name", ""),
         avatar_url=profile.get("avatar_url", ""),

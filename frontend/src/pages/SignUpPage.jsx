@@ -43,8 +43,11 @@ export default function SignUpPage() {
         navigate("/dashboard");
       }
     } catch (err) {
-      const msg = err?.response?.data?.detail || "Could not create account";
-      setError(msg);
+      if (!err.response) {
+        setError("Unable to connect to server. Please check your connection.");
+      } else {
+        setError(err.response.data?.detail || "Could not create account");
+      }
     } finally {
       setLoading(false);
     }
@@ -140,6 +143,7 @@ export default function SignUpPage() {
                 />
                 <button
                   type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
                 >

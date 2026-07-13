@@ -231,6 +231,7 @@ export default function ProfilePage() {
             <div className="flex justify-end">
               <button
                 onClick={handleSignOut}
+                aria-label="Sign out"
                 className="flex items-center gap-2 text-sm text-zinc-500 hover:text-red-300 transition-colors"
               >
                 <LogOut className="h-4 w-4" />

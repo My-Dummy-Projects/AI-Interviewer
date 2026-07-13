@@ -30,8 +30,12 @@ export default function SignInPage() {
       toast.success("Signed in successfully");
       navigate("/dashboard");
     } catch (err) {
-      const detail = err?.response?.data?.detail || "";
-      setError(detail || "Invalid email or password");
+      if (!err.response) {
+        setError("Unable to connect to server. Please check your connection.");
+      } else {
+        const detail = err.response.data?.detail || "";
+        setError(detail || "Invalid email or password");
+      }
     } finally {
       setLoading(false);
     }
@@ -126,6 +130,7 @@ export default function SignInPage() {
                 />
                 <button
                   type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
                 >

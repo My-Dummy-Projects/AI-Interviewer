@@ -622,12 +622,12 @@ export default function DashboardPage() {
             >
               <Settings className="h-3.5 w-3.5" strokeWidth={1.5} />
             </Link>
-            <button
-              onClick={handleSignOut}
-              disabled={signingOut}
-              className="h-8 w-8 rounded-full border border-white/10 hover:bg-red-500/10 hover:border-red-400/30 text-zinc-500 hover:text-red-300 flex items-center justify-center transition-all disabled:opacity-40"
-              title="Sign out"
-            >
+              <button
+                onClick={handleSignOut}
+                disabled={signingOut}
+                aria-label="Sign out"
+                className="h-8 w-8 rounded-full border border-white/10 hover:bg-red-500/10 hover:border-red-400/30 text-zinc-500 hover:text-red-300 flex items-center justify-center transition-all disabled:opacity-40"
+              >
               <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} />
             </button>
           </>
@@ -722,7 +722,7 @@ export default function DashboardPage() {
                   data-testid="dashboard-edit-goal-btn"
                   onClick={() => setEditingGoal((v) => !v)}
                   className="h-7 w-7 rounded-full border border-white/10 hover:border-white/25 hover:bg-white/5 text-zinc-400 hover:text-white flex items-center justify-center transition-all"
-                  title="Edit goal"
+                  aria-label="Edit weekly goal"
                 >
                   <Pencil className="h-3 w-3" strokeWidth={2} />
                 </button>
@@ -755,6 +755,7 @@ export default function DashboardPage() {
                         onClick={() => persistGoal(weeklyGoal - 1)}
                         className="h-8 w-8 rounded-lg border border-white/10 hover:border-white/25 hover:bg-white/5 text-white flex items-center justify-center transition-all disabled:opacity-30"
                         disabled={weeklyGoal <= 1}
+                        aria-label="Decrease weekly goal"
                         data-testid="dashboard-goal-decrement"
                       >
                         <Minus className="h-3.5 w-3.5" strokeWidth={2} />
@@ -772,6 +773,7 @@ export default function DashboardPage() {
                         onClick={() => persistGoal(weeklyGoal + 1)}
                         className="h-8 w-8 rounded-lg border border-white/10 hover:border-white/25 hover:bg-white/5 text-white flex items-center justify-center transition-all disabled:opacity-30"
                         disabled={weeklyGoal >= 20}
+                        aria-label="Increase weekly goal"
                         data-testid="dashboard-goal-increment"
                       >
                         <Plus className="h-3.5 w-3.5" strokeWidth={2} />
@@ -1056,11 +1058,13 @@ export default function DashboardPage() {
                     setVisibleCount(PAGE_SIZE);
                   }}
                   placeholder="Search..."
+                  aria-label="Search interviews"
                   className="h-9 w-full sm:w-44 lg:w-56 rounded-lg bg-white/[0.03] border-white/10 text-sm text-white placeholder:text-zinc-600 pl-9 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40"
                 />
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
+                aria-label={showFilters ? "Hide filters" : "Show filters"}
                 className={`h-9 w-9 rounded-lg border flex items-center justify-center transition-colors ${showFilters || levelFilter !== "All Levels"
                   ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-300"
                   : "border-white/10 bg-white/[0.03] text-zinc-500 hover:text-zinc-300"
@@ -1179,149 +1183,4 @@ export default function DashboardPage() {
   );
 }
 
-/* ─────────────────────────── empty state ─────────────────────────── */
 
-// function EmptyState() {
-//   const STEPS = [
-//     {
-//       icon: Briefcase,
-//       label: "Pick your role",
-//       hint: "Choose a job role, seniority, and duration",
-//     },
-//     {
-//       icon: BrainCircuit,
-//       label: "Practice live",
-//       hint: "Chat with a real-time AI interviewer",
-//     },
-//     {
-//       icon: Trophy,
-//       label: "Get feedback",
-//       hint: "Structured report with scores & tips",
-//     },
-//   ];
-
-//   return (
-//     <motion.section
-//       initial={{ opacity: 0, y: 12 }}
-//       animate={{ opacity: 1, y: 0 }}
-//       transition={{ duration: 0.5 }}
-//       className="mb-10"
-//     >
-//       <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0a0a0a] via-[#080808] to-[#050505]">
-//         {/* decorative mesh */}
-//         <div className="absolute -top-24 -left-16 w-96 h-96 bg-cyan-400/[0.08] rounded-full blur-3xl" />
-//         <div className="absolute -bottom-24 -right-16 w-96 h-96 bg-emerald-400/[0.05] rounded-full blur-3xl" />
-//         <div className="absolute inset-0 grid-bg opacity-40 pointer-events-none" />
-
-//         <div className="relative grid grid-cols-1 lg:grid-cols-5 gap-8 p-6 sm:p-10">
-//           {/* copy + CTA */}
-//           <div className="lg:col-span-3 flex flex-col justify-center">
-//             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-cyan-400/20 bg-cyan-400/5 w-fit mb-4">
-//               <Zap className="h-3 w-3 text-cyan-300" strokeWidth={2} />
-//               <span className="text-[10px] font-mono tracking-widest uppercase text-cyan-300">
-//                 Get Started
-//               </span>
-//             </div>
-//             <h2
-//               className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter text-white leading-[1.1]"
-//               style={{ fontFamily: "var(--font-heading)" }}
-//             >
-//               Your first interview<br />
-//               is a click away<span className="text-cyan-300">.</span>
-//             </h2>
-//             <p className="mt-3 text-sm sm:text-base text-zinc-400 max-w-lg leading-relaxed">
-//               Run a live, voice-based mock interview tailored to your role and get a structured
-//               report you can act on in minutes.
-//             </p>
-
-//             <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2">
-//               {STEPS.map((s, i) => (
-//                 <div
-//                   key={i}
-//                   className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5 hover:border-white/15 transition-all"
-//                 >
-//                   <div className="flex items-center gap-2 mb-1.5">
-//                     <div className="h-6 w-6 rounded-md bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
-//                       <s.icon className="h-3 w-3 text-cyan-300" strokeWidth={2} />
-//                     </div>
-//                     <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-//                       Step {i + 1}
-//                     </span>
-//                   </div>
-//                   <div className="text-sm font-semibold text-white">{s.label}</div>
-//                   <div className="text-[11px] text-zinc-500 mt-0.5 leading-snug">{s.hint}</div>
-//                 </div>
-//               ))}
-//             </div>
-
-//             <div className="mt-6 flex items-center gap-3">
-//               <Link to="/setup">
-//                 <Button
-//                   data-testid="dashboard-empty-cta"
-//                   className="rounded-full bg-white hover:bg-zinc-200 text-black px-7 h-11 text-sm font-semibold shadow-lg shadow-white/5 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-//                 >
-//                   <Play className="mr-2 h-4 w-4 fill-black" strokeWidth={0} />
-//                   Start your first interview
-//                 </Button>
-//               </Link>
-//               <span className="text-[11px] font-mono text-zinc-600">≈ 15 min</span>
-//             </div>
-//           </div>
-
-//           {/* teaser preview */}
-//           <div className="lg:col-span-2 relative">
-//             <div className="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0a]/80 backdrop-blur p-4 sm:p-5 shadow-2xl">
-//               <div className="flex items-center gap-2 mb-3">
-//                 <div className="h-6 w-6 rounded-md bg-cyan-400/10 flex items-center justify-center">
-//                   <BrainCircuit className="h-3.5 w-3.5 text-cyan-300" strokeWidth={1.5} />
-//                 </div>
-//                 <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-//                   Sample Report
-//                 </div>
-//               </div>
-//               <div className="text-xs text-zinc-500 mb-2">Overall</div>
-//               <div className="flex items-end justify-between mb-4">
-//                 <div className="text-4xl font-black tracking-tighter text-white">82</div>
-//                 <div className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/25">
-//                   +7
-//                 </div>
-//               </div>
-//               <div className="space-y-2.5">
-//                 {[
-//                   { l: "Technical", v: 85 },
-//                   { l: "Communication", v: 78 },
-//                   { l: "Problem Solving", v: 82 },
-//                   { l: "Confidence", v: 80 },
-//                 ].map((s) => (
-//                   <div key={s.l}>
-//                     <div className="flex justify-between text-[10px] mb-1">
-//                       <span className="text-zinc-500">{s.l}</span>
-//                       <span className="text-white font-mono font-semibold">{s.v}</span>
-//                     </div>
-//                     <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-//                       <motion.div
-//                         className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"
-//                         initial={{ width: 0 }}
-//                         animate={{ width: `${s.v}%` }}
-//                         transition={{ duration: 1.2, ease: "easeOut" }}
-//                       />
-//                     </div>
-//                   </div>
-//                 ))}
-//               </div>
-//               <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-zinc-500">
-//                 <span>Senior · Frontend</span>
-//                 <span>30m</span>
-//               </div>
-//             </div>
-//             {/* floating badge */}
-//             <div className="absolute -top-3 -right-3 px-2.5 py-1 rounded-full bg-cyan-400 text-black text-[10px] font-mono font-bold flex items-center gap-1 shadow-lg">
-//               <Sparkles className="h-3 w-3" strokeWidth={2.5} />
-//               PREVIEW
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     </motion.section>
-//   );
-// }
