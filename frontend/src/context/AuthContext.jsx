@@ -9,19 +9,39 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem("voxa_access_token");
-    if (token) {
-      api.getProfile()
-        .then((profile) => {
-          setUser({ ...profile, id: token });
-        })
-        .catch(() => {
-          localStorage.removeItem("voxa_access_token");
-          localStorage.removeItem("voxa_refresh_token");
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+    const refreshToken = localStorage.getItem("voxa_refresh_token");
+
+    const restore = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const profile = await api.getProfile();
+        setUser({ ...profile, id: token });
+      } catch {
+        if (refreshToken) {
+          try {
+            const data = await api.refreshToken(refreshToken);
+            if (data.session?.access_token) {
+              localStorage.setItem("voxa_access_token", data.session.access_token);
+              localStorage.setItem("voxa_refresh_token", data.session.refresh_token || "");
+              const profile = await api.getProfile();
+              setUser({ ...profile, id: data.session.access_token });
+              return;
+            }
+          } catch {
+            // refresh failed
+          }
+        }
+        localStorage.removeItem("voxa_access_token");
+        localStorage.removeItem("voxa_refresh_token");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restore();
   }, []);
 
   const signup = useCallback(async (email, password) => {

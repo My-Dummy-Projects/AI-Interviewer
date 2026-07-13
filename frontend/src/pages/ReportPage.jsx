@@ -9,6 +9,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useInterview } from "@/context/InterviewContext";
+import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 
 const RECS = {
@@ -61,31 +62,31 @@ export default function ReportPage() {
       <div className="ambient-glow" />
 
       {/* Top bar */}
-      <header className="relative border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <Navbar
+        left={
+          <>
             <Link to="/">
               <VoxaLogo size={26} />
             </Link>
             <div className="hidden md:block h-5 w-px bg-white/10" />
             <div className="hidden md:block label-overline">03 / Feedback Report</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                reset();
-                navigate("/setup");
-              }}
-              className="rounded-full h-10 bg-transparent border-white/15 hover:bg-white/5 text-white"
-              data-testid="report-restart-button"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              NEW INTERVIEW
-            </Button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+        right={
+          <Button
+            variant="outline"
+            onClick={() => {
+              reset();
+              navigate("/setup");
+            }}
+            className="rounded-full h-10 bg-transparent border-white/15 hover:bg-white/5 text-white"
+            data-testid="report-restart-button"
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            NEW INTERVIEW
+          </Button>
+        }
+      />
 
       <main className="relative max-w-7xl mx-auto px-6 py-10 space-y-10">
         {/* Meta */}

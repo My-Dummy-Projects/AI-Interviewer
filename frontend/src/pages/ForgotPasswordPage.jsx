@@ -4,6 +4,7 @@ import { ArrowLeft, Mail, AlertTriangle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import api from "@/lib/api";
 import { LoadingOverlay } from "@/components/LoadingScreen";
@@ -21,7 +22,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setError("");
     try {
-      await api.resetPassword(email.trim());
+      await api.resetPassword(email.trim(), window.location.origin + "/reset-password");
       setSent(true);
       toast.success("Reset link sent");
     } catch (err) {
@@ -38,21 +39,22 @@ export default function ForgotPasswordPage() {
       <div className="absolute inset-0 grid-bg opacity-30 pointer-events-none" />
       <div className="ambient-glow" />
 
-      <header className="relative border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" data-testid="forgot-password-nav-logo">
-            <VoxaLogo size={28} />
-          </Link>
+      <Navbar
+        left={
+          <>
+            <Link to="/" data-testid="forgot-password-nav-logo"><VoxaLogo size={28} /></Link>
+            <div className="hidden md:block h-5 w-px bg-white/10" />
+            <div className="hidden md:block label-overline">Reset Password</div>
+          </>
+        }
+        right={
           <Link to="/signin">
-            <Button
-              variant="outline"
-              className="rounded-full bg-transparent border-white/15 hover:bg-white/5 text-white h-9 px-4 text-sm"
-            >
+            <Button variant="outline" className="rounded-full bg-transparent border-white/15 hover:bg-white/5 text-white h-9 px-4 text-sm">
               Back to sign in
             </Button>
           </Link>
-        </div>
-      </header>
+        }
+      />
 
       <main className="relative flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">

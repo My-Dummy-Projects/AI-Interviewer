@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useInterview } from "@/context/InterviewContext";
 import { getVapi, resetVapi } from "@/lib/vapiClient";
+import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { LoadingScreen, LoadingOverlay } from "@/components/LoadingScreen";
 import api from "@/lib/api";
@@ -285,13 +286,15 @@ export default function InterviewPage() {
       <div className="ambient-glow" />
 
       {/* Top bar */}
-      <header className="relative border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <Navbar
+        left={
+          <>
             <VoxaLogo size={26} />
             <div className="hidden md:block h-5 w-px bg-white/10" />
             <div className="hidden md:block label-overline">02 / Live Interview</div>
-          </div>
+          </>
+        }
+        right={
           <div className="flex items-center gap-4">
             <div className="hidden md:block text-xs font-mono uppercase tracking-widest text-zinc-500">
               {setup?.jobRole} · {setup?.experienceLevel}
@@ -303,8 +306,8 @@ export default function InterviewPage() {
               {fmtTime(elapsed)} / {fmtTime(durationSec)}
             </div>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {/* Main stage */}
       <main className="relative flex-1 overflow-hidden">

@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
@@ -84,25 +85,25 @@ export default function ProfilePage() {
       <div className="absolute inset-0 grid-bg opacity-30 pointer-events-none" />
       <div className="ambient-glow" />
 
-      <header className="relative border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <Navbar
+        left={
+          <>
             <Link to="/" data-testid="profile-nav-logo">
               <VoxaLogo size={28} />
             </Link>
             <div className="hidden md:block h-5 w-px bg-white/10" />
             <div className="hidden md:block label-overline">Profile Settings</div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/dashboard">
-              <Button variant="outline" className="rounded-full bg-transparent border-white/15 hover:bg-white/5 text-white h-9 px-4 text-sm">
-                <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" />
-                Dashboard
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+        right={
+          <Link to="/dashboard">
+            <Button variant="outline" className="rounded-full bg-transparent border-white/15 hover:bg-white/5 text-white h-9 px-4 text-sm">
+              <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" />
+              Dashboard
+            </Button>
+          </Link>
+        }
+      />
 
       <main className="relative max-w-4xl mx-auto px-6 py-8 md:py-10">
         <div className="flex items-center gap-3 mb-8">

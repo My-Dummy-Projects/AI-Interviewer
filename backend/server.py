@@ -103,6 +103,16 @@ class SignInRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     email: str
+    redirect_to: Optional[str] = None
+
+
+class UpdatePasswordRequest(BaseModel):
+    access_token: str
+    new_password: str
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
 
 class AuthResponse(BaseModel):
@@ -188,6 +198,19 @@ async def signup(req: SignUpRequest):
         raise HTTPException(status_code=503, detail="Supabase not configured")
     try:
         resp = supabase.auth.sign_up({"email": req.email, "password": req.password})
+        user_id = resp.user.id
+        email = resp.user.email or req.email
+
+        existing = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+        if not existing.data:
+            supabase.table("user_profiles").insert({
+                "user_id": user_id,
+                "email": email,
+                "display_name": email.split("@")[0],
+                "avatar_url": "",
+                "bio": "",
+            }).execute()
+
         return AuthResponse(
             user=resp.user.model_dump() if hasattr(resp.user, 'model_dump') else dict(resp.user),
             session=resp.session.model_dump() if hasattr(resp.session, 'model_dump') else dict(resp.session) if resp.session else {},
@@ -229,31 +252,62 @@ async def reset_password(req: ResetPasswordRequest):
     if not supabase:
         raise HTTPException(status_code=503, detail="Supabase not configured")
     try:
-        supabase.auth.reset_password_email(req.email)
+        options = {"redirect_to": req.redirect_to} if req.redirect_to else {}
+        supabase.auth.reset_password_email(req.email, options=options)
         return {"message": "Password reset email sent"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.post("/auth/update-password")
+async def update_password(req: UpdatePasswordRequest):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    try:
+        user_resp = supabase.auth.get_user(req.access_token)
+        supabase.auth.admin.update_user_by_id(user_resp.user.id, {"password": req.new_password})
+        return {"message": "Password updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.post("/auth/refresh", response_model=AuthResponse)
+async def refresh_token(req: RefreshTokenRequest):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    try:
+        session = supabase.auth.refresh_session(req.refresh_token)
+        return AuthResponse(
+            user=session.user.model_dump() if hasattr(session.user, 'model_dump') else dict(session.user),
+            session={
+                "access_token": session.access_token,
+                "refresh_token": session.refresh_token,
+                "expires_in": getattr(session, 'expires_in', 3600),
+                "expires_at": getattr(session, 'expires_at', 0),
+                "token_type": getattr(session, 'token_type', 'bearer'),
+            },
+        )
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
 
 
 # ---------- User Profile Routes ----------
 @api_router.get("/user/profile", response_model=UserProfileResponse)
 async def get_profile(current_user=Depends(get_current_user)):
     user_id = current_user.id
-    collection = db["user_profiles"]
-    profile = await collection.find_one({"user_id": user_id})
-    if not profile:
-        profile = {
+    result = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+    if not result.data:
+        supabase.table("user_profiles").insert({
             "user_id": user_id,
             "email": current_user.email,
             "display_name": current_user.email.split("@")[0],
             "avatar_url": "",
             "bio": "",
-            "created_at": str(current_user.created_at or ""),
-            "updated_at": str(current_user.created_at or ""),
-        }
-        await collection.insert_one(profile)
+        }).execute()
+        result = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+    profile = result.data[0]
     return UserProfileResponse(
-        id=str(profile["_id"]),
+        id=profile["id"],
         email=profile.get("email", current_user.email),
         display_name=profile.get("display_name", current_user.email.split("@")[0]),
         avatar_url=profile.get("avatar_url", ""),
@@ -266,19 +320,24 @@ async def get_profile(current_user=Depends(get_current_user)):
 @api_router.put("/user/profile", response_model=UserProfileResponse)
 async def update_profile(req: UserProfileUpdate, current_user=Depends(get_current_user)):
     user_id = current_user.id
-    collection = db["user_profiles"]
     update_data = {k: v for k, v in req.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
     update_data["updated_at"] = str(datetime.utcnow())
-    result = await collection.update_one(
-        {"user_id": user_id},
-        {"$set": update_data},
-        upsert=True,
-    )
-    profile = await collection.find_one({"user_id": user_id})
+
+    existing = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+    if existing.data:
+        supabase.table("user_profiles").update(update_data).eq("user_id", user_id).execute()
+    else:
+        update_data["user_id"] = user_id
+        update_data["email"] = current_user.email
+        update_data.setdefault("display_name", current_user.email.split("@")[0])
+        supabase.table("user_profiles").insert(update_data).execute()
+
+    result = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+    profile = result.data[0]
     return UserProfileResponse(
-        id=str(profile["_id"]),
+        id=profile["id"],
         email=profile.get("email", current_user.email),
         display_name=profile.get("display_name", ""),
         avatar_url=profile.get("avatar_url", ""),

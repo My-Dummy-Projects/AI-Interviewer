@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useInterview } from "@/context/InterviewContext";
 import { useAuth } from "@/context/AuthContext";
+import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 
 const EXPERIENCE_LEVELS = [
@@ -60,22 +61,31 @@ export default function SetupPage() {
       <div className="ambient-glow" />
 
       {/* Top bar */}
-      <header className="relative border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" data-testid="setup-nav-logo">
-            <VoxaLogo size={28} />
-          </Link>
-          <div className="hidden md:flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-zinc-500">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Secure · Voice never leaves the call</span>
-          </div>
-          <Link to="/" className="md:hidden">
-            <Button variant="outline" className="h-9 px-3 rounded-full bg-transparent border-white/15 hover:bg-white/5 text-white">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
-      </header>
+      <Navbar
+        left={
+          <>
+
+            <Link to="/" data-testid="setup-nav-logo">
+              <VoxaLogo size={28} />
+            </Link>
+            <div className="hidden md:block h-5 w-px bg-white" />
+            <div className="hidden md:block label-overline">Setup</div>
+          </>
+        }
+        right={
+          <>
+            <div className="hidden md:flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-zinc-500">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Secure · Voice never leaves the call</span>
+            </div>
+            <Link to="/" className="md:hidden">
+              <Button variant="outline" className="h-9 px-3 rounded-full bg-transparent border-white/15 hover:bg-white/5 text-white">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Hero + Setup */}
       <main className="relative max-w-7xl mx-auto px-6 py-10 md:py-16">

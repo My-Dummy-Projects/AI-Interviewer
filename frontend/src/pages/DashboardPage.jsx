@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
@@ -591,44 +592,47 @@ export default function DashboardPage() {
       <div className="absolute top-40 right-0 w-[500px] h-[500px] bg-emerald-500/[0.03] rounded-full blur-[120px] pointer-events-none" />
 
       {/* ─── header ─── */}
-      <header className="relative border-b border-white/5 backdrop-blur-sm bg-[#050505]/50 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-5">
-            <Link to="/" data-testid="dashboard-nav-logo">
-              <VoxaLogo size={26} />
+      <Navbar
+        left={
+          <>
+            <Link to="/" data-testid="dashboard-nav-logo" className="shrink-0">
+              <VoxaLogo size={22} />
             </Link>
-            <div className="h-4 w-px bg-white/10" />
-            <span className="text-[11px] font-mono tracking-[0.2em] uppercase text-zinc-500 hidden sm:block">
-              Dashboard
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Link to="/profile">
-              <Button
-                variant="outline"
-                className="rounded-full bg-transparent border-white/10 hover:bg-white/5 text-zinc-400 hover:text-white h-8 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm transition-all"
-              >
-                <Settings className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} />
-                <span className="hidden sm:inline">Profile</span>
-              </Button>
+            <div className="hidden md:block h-5 w-px bg-white" />
+            <div className="hidden md:block label-overline">Dashboard</div>
+          </>
+        }
+        right={
+          <>
+            <Link
+              to="/profile"
+              className="hidden md:flex items-center gap-2.5 h-8 pl-2 pr-3 rounded-full border border-white/10 hover:bg-white/5 transition-colors group"
+            >
+              <div className="h-5 w-5 rounded-full bg-gradient-to-br from-cyan-400 to-emerald-400 flex items-center justify-center text-[9px] font-bold text-black shrink-0">
+                {profile?.display_name?.charAt(0)?.toUpperCase() || "U"}
+              </div>
+              <span className="text-xs text-zinc-400 group-hover:text-white transition-colors max-w-[100px] truncate">
+                {profile?.display_name || "User"}
+              </span>
+            </Link>
+            <Link
+              to="/profile"
+              className="md:hidden h-8 w-8 rounded-full border border-white/10 hover:bg-white/5 flex items-center justify-center text-zinc-400 hover:text-white transition-all"
+              title="Profile"
+            >
+              <Settings className="h-3.5 w-3.5" strokeWidth={1.5} />
             </Link>
             <button
               onClick={handleSignOut}
               disabled={signingOut}
-              className="h-8 sm:h-9 w-8 sm:w-9 rounded-full border border-white/10 bg-transparent hover:bg-red-500/10 hover:border-red-400/30 text-zinc-500 hover:text-red-300 flex items-center justify-center transition-all disabled:opacity-40"
+              className="h-8 w-8 rounded-full border border-white/10 hover:bg-red-500/10 hover:border-red-400/30 text-zinc-500 hover:text-red-300 flex items-center justify-center transition-all disabled:opacity-40"
               title="Sign out"
             >
               <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} />
             </button>
-            <Link to="/setup">
-              <Button className="rounded-full bg-white hover:bg-zinc-200 text-black h-8 sm:h-9 px-3 sm:px-5 text-xs sm:text-sm font-semibold transition-all">
-                <span>New Interview</span>
-                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 z-10">
         {/* ─── hero row: welcome (2/3) + weekly goal (1/3) ─── */}
@@ -798,7 +802,7 @@ export default function DashboardPage() {
         </section>
 
         {/* ─── empty state ─── */}
-        {!hasData && !loading && <EmptyState />}
+        {/* {!hasData && !loading && <EmptyState />} */}
 
         {/* ─── stats grid ─── */}
         {hasData && (
@@ -857,9 +861,8 @@ export default function DashboardPage() {
                     </div>
                     {typeof delta === "number" && delta !== 0 && (
                       <span
-                        className={`inline-flex items-center gap-0.5 text-[10px] font-mono font-bold ${
-                          delta > 0 ? "text-emerald-400" : "text-red-400"
-                        }`}
+                        className={`inline-flex items-center gap-0.5 text-[10px] font-mono font-bold ${delta > 0 ? "text-emerald-400" : "text-red-400"
+                          }`}
                       >
                         {delta > 0 ? (
                           <TrendingUp className="h-3 w-3" strokeWidth={2} />
@@ -912,13 +915,12 @@ export default function DashboardPage() {
                 </div>
                 {scoreDelta !== null && (
                   <div
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold border ${
-                      scoreDelta > 0
-                        ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/5"
-                        : scoreDelta < 0
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold border ${scoreDelta > 0
+                      ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/5"
+                      : scoreDelta < 0
                         ? "text-red-400 border-red-400/30 bg-red-400/5"
                         : "text-zinc-400 border-white/10 bg-white/[0.03]"
-                    }`}
+                      }`}
                   >
                     {scoreDelta > 0 ? (
                       <TrendingUp className="h-3 w-3" strokeWidth={2} />
@@ -976,9 +978,9 @@ export default function DashboardPage() {
                 <div className="text-xl font-bold text-white">
                   {interviews.length >= 2
                     ? `${Math.max(
-                        0,
-                        interviews[0].overallScore - interviews[interviews.length - 1].overallScore
-                      )} pts`
+                      0,
+                      interviews[0].overallScore - interviews[interviews.length - 1].overallScore
+                    )} pts`
                     : "—"}
                 </div>
                 <div className="text-[11px] text-zinc-600 mt-0.5">
@@ -1059,11 +1061,10 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`h-9 w-9 rounded-lg border flex items-center justify-center transition-colors ${
-                  showFilters || levelFilter !== "All Levels"
-                    ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-300"
-                    : "border-white/10 bg-white/[0.03] text-zinc-500 hover:text-zinc-300"
-                }`}
+                className={`h-9 w-9 rounded-lg border flex items-center justify-center transition-colors ${showFilters || levelFilter !== "All Levels"
+                  ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-300"
+                  : "border-white/10 bg-white/[0.03] text-zinc-500 hover:text-zinc-300"
+                  }`}
               >
                 <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
               </button>
@@ -1079,11 +1080,10 @@ export default function DashboardPage() {
                     setLevelFilter(l);
                     setVisibleCount(PAGE_SIZE);
                   }}
-                  className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${
-                    levelFilter === l
-                      ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-300"
-                      : "border-white/10 text-zinc-500 hover:text-zinc-300 hover:border-white/20"
-                  }`}
+                  className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${levelFilter === l
+                    ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-300"
+                    : "border-white/10 text-zinc-500 hover:text-zinc-300 hover:border-white/20"
+                    }`}
                 >
                   {l}
                 </button>
@@ -1181,147 +1181,147 @@ export default function DashboardPage() {
 
 /* ─────────────────────────── empty state ─────────────────────────── */
 
-function EmptyState() {
-  const STEPS = [
-    {
-      icon: Briefcase,
-      label: "Pick your role",
-      hint: "Choose a job role, seniority, and duration",
-    },
-    {
-      icon: BrainCircuit,
-      label: "Practice live",
-      hint: "Chat with a real-time AI interviewer",
-    },
-    {
-      icon: Trophy,
-      label: "Get feedback",
-      hint: "Structured report with scores & tips",
-    },
-  ];
+// function EmptyState() {
+//   const STEPS = [
+//     {
+//       icon: Briefcase,
+//       label: "Pick your role",
+//       hint: "Choose a job role, seniority, and duration",
+//     },
+//     {
+//       icon: BrainCircuit,
+//       label: "Practice live",
+//       hint: "Chat with a real-time AI interviewer",
+//     },
+//     {
+//       icon: Trophy,
+//       label: "Get feedback",
+//       hint: "Structured report with scores & tips",
+//     },
+//   ];
 
-  return (
-    <motion.section
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="mb-10"
-    >
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0a0a0a] via-[#080808] to-[#050505]">
-        {/* decorative mesh */}
-        <div className="absolute -top-24 -left-16 w-96 h-96 bg-cyan-400/[0.08] rounded-full blur-3xl" />
-        <div className="absolute -bottom-24 -right-16 w-96 h-96 bg-emerald-400/[0.05] rounded-full blur-3xl" />
-        <div className="absolute inset-0 grid-bg opacity-40 pointer-events-none" />
+//   return (
+//     <motion.section
+//       initial={{ opacity: 0, y: 12 }}
+//       animate={{ opacity: 1, y: 0 }}
+//       transition={{ duration: 0.5 }}
+//       className="mb-10"
+//     >
+//       <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0a0a0a] via-[#080808] to-[#050505]">
+//         {/* decorative mesh */}
+//         <div className="absolute -top-24 -left-16 w-96 h-96 bg-cyan-400/[0.08] rounded-full blur-3xl" />
+//         <div className="absolute -bottom-24 -right-16 w-96 h-96 bg-emerald-400/[0.05] rounded-full blur-3xl" />
+//         <div className="absolute inset-0 grid-bg opacity-40 pointer-events-none" />
 
-        <div className="relative grid grid-cols-1 lg:grid-cols-5 gap-8 p-6 sm:p-10">
-          {/* copy + CTA */}
-          <div className="lg:col-span-3 flex flex-col justify-center">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-cyan-400/20 bg-cyan-400/5 w-fit mb-4">
-              <Zap className="h-3 w-3 text-cyan-300" strokeWidth={2} />
-              <span className="text-[10px] font-mono tracking-widest uppercase text-cyan-300">
-                Get Started
-              </span>
-            </div>
-            <h2
-              className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter text-white leading-[1.1]"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              Your first interview<br />
-              is a click away<span className="text-cyan-300">.</span>
-            </h2>
-            <p className="mt-3 text-sm sm:text-base text-zinc-400 max-w-lg leading-relaxed">
-              Run a live, voice-based mock interview tailored to your role and get a structured
-              report you can act on in minutes.
-            </p>
+//         <div className="relative grid grid-cols-1 lg:grid-cols-5 gap-8 p-6 sm:p-10">
+//           {/* copy + CTA */}
+//           <div className="lg:col-span-3 flex flex-col justify-center">
+//             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-cyan-400/20 bg-cyan-400/5 w-fit mb-4">
+//               <Zap className="h-3 w-3 text-cyan-300" strokeWidth={2} />
+//               <span className="text-[10px] font-mono tracking-widest uppercase text-cyan-300">
+//                 Get Started
+//               </span>
+//             </div>
+//             <h2
+//               className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter text-white leading-[1.1]"
+//               style={{ fontFamily: "var(--font-heading)" }}
+//             >
+//               Your first interview<br />
+//               is a click away<span className="text-cyan-300">.</span>
+//             </h2>
+//             <p className="mt-3 text-sm sm:text-base text-zinc-400 max-w-lg leading-relaxed">
+//               Run a live, voice-based mock interview tailored to your role and get a structured
+//               report you can act on in minutes.
+//             </p>
 
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {STEPS.map((s, i) => (
-                <div
-                  key={i}
-                  className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5 hover:border-white/15 transition-all"
-                >
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="h-6 w-6 rounded-md bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
-                      <s.icon className="h-3 w-3 text-cyan-300" strokeWidth={2} />
-                    </div>
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                      Step {i + 1}
-                    </span>
-                  </div>
-                  <div className="text-sm font-semibold text-white">{s.label}</div>
-                  <div className="text-[11px] text-zinc-500 mt-0.5 leading-snug">{s.hint}</div>
-                </div>
-              ))}
-            </div>
+//             <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2">
+//               {STEPS.map((s, i) => (
+//                 <div
+//                   key={i}
+//                   className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5 hover:border-white/15 transition-all"
+//                 >
+//                   <div className="flex items-center gap-2 mb-1.5">
+//                     <div className="h-6 w-6 rounded-md bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
+//                       <s.icon className="h-3 w-3 text-cyan-300" strokeWidth={2} />
+//                     </div>
+//                     <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+//                       Step {i + 1}
+//                     </span>
+//                   </div>
+//                   <div className="text-sm font-semibold text-white">{s.label}</div>
+//                   <div className="text-[11px] text-zinc-500 mt-0.5 leading-snug">{s.hint}</div>
+//                 </div>
+//               ))}
+//             </div>
 
-            <div className="mt-6 flex items-center gap-3">
-              <Link to="/setup">
-                <Button
-                  data-testid="dashboard-empty-cta"
-                  className="rounded-full bg-white hover:bg-zinc-200 text-black px-7 h-11 text-sm font-semibold shadow-lg shadow-white/5 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                  <Play className="mr-2 h-4 w-4 fill-black" strokeWidth={0} />
-                  Start your first interview
-                </Button>
-              </Link>
-              <span className="text-[11px] font-mono text-zinc-600">≈ 15 min</span>
-            </div>
-          </div>
+//             <div className="mt-6 flex items-center gap-3">
+//               <Link to="/setup">
+//                 <Button
+//                   data-testid="dashboard-empty-cta"
+//                   className="rounded-full bg-white hover:bg-zinc-200 text-black px-7 h-11 text-sm font-semibold shadow-lg shadow-white/5 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+//                 >
+//                   <Play className="mr-2 h-4 w-4 fill-black" strokeWidth={0} />
+//                   Start your first interview
+//                 </Button>
+//               </Link>
+//               <span className="text-[11px] font-mono text-zinc-600">≈ 15 min</span>
+//             </div>
+//           </div>
 
-          {/* teaser preview */}
-          <div className="lg:col-span-2 relative">
-            <div className="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0a]/80 backdrop-blur p-4 sm:p-5 shadow-2xl">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-6 w-6 rounded-md bg-cyan-400/10 flex items-center justify-center">
-                  <BrainCircuit className="h-3.5 w-3.5 text-cyan-300" strokeWidth={1.5} />
-                </div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                  Sample Report
-                </div>
-              </div>
-              <div className="text-xs text-zinc-500 mb-2">Overall</div>
-              <div className="flex items-end justify-between mb-4">
-                <div className="text-4xl font-black tracking-tighter text-white">82</div>
-                <div className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/25">
-                  +7
-                </div>
-              </div>
-              <div className="space-y-2.5">
-                {[
-                  { l: "Technical", v: 85 },
-                  { l: "Communication", v: 78 },
-                  { l: "Problem Solving", v: 82 },
-                  { l: "Confidence", v: 80 },
-                ].map((s) => (
-                  <div key={s.l}>
-                    <div className="flex justify-between text-[10px] mb-1">
-                      <span className="text-zinc-500">{s.l}</span>
-                      <span className="text-white font-mono font-semibold">{s.v}</span>
-                    </div>
-                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${s.v}%` }}
-                        transition={{ duration: 1.2, ease: "easeOut" }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-zinc-500">
-                <span>Senior · Frontend</span>
-                <span>30m</span>
-              </div>
-            </div>
-            {/* floating badge */}
-            <div className="absolute -top-3 -right-3 px-2.5 py-1 rounded-full bg-cyan-400 text-black text-[10px] font-mono font-bold flex items-center gap-1 shadow-lg">
-              <Sparkles className="h-3 w-3" strokeWidth={2.5} />
-              PREVIEW
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.section>
-  );
-}
+//           {/* teaser preview */}
+//           <div className="lg:col-span-2 relative">
+//             <div className="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0a]/80 backdrop-blur p-4 sm:p-5 shadow-2xl">
+//               <div className="flex items-center gap-2 mb-3">
+//                 <div className="h-6 w-6 rounded-md bg-cyan-400/10 flex items-center justify-center">
+//                   <BrainCircuit className="h-3.5 w-3.5 text-cyan-300" strokeWidth={1.5} />
+//                 </div>
+//                 <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+//                   Sample Report
+//                 </div>
+//               </div>
+//               <div className="text-xs text-zinc-500 mb-2">Overall</div>
+//               <div className="flex items-end justify-between mb-4">
+//                 <div className="text-4xl font-black tracking-tighter text-white">82</div>
+//                 <div className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/25">
+//                   +7
+//                 </div>
+//               </div>
+//               <div className="space-y-2.5">
+//                 {[
+//                   { l: "Technical", v: 85 },
+//                   { l: "Communication", v: 78 },
+//                   { l: "Problem Solving", v: 82 },
+//                   { l: "Confidence", v: 80 },
+//                 ].map((s) => (
+//                   <div key={s.l}>
+//                     <div className="flex justify-between text-[10px] mb-1">
+//                       <span className="text-zinc-500">{s.l}</span>
+//                       <span className="text-white font-mono font-semibold">{s.v}</span>
+//                     </div>
+//                     <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+//                       <motion.div
+//                         className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"
+//                         initial={{ width: 0 }}
+//                         animate={{ width: `${s.v}%` }}
+//                         transition={{ duration: 1.2, ease: "easeOut" }}
+//                       />
+//                     </div>
+//                   </div>
+//                 ))}
+//               </div>
+//               <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-zinc-500">
+//                 <span>Senior · Frontend</span>
+//                 <span>30m</span>
+//               </div>
+//             </div>
+//             {/* floating badge */}
+//             <div className="absolute -top-3 -right-3 px-2.5 py-1 rounded-full bg-cyan-400 text-black text-[10px] font-mono font-bold flex items-center gap-1 shadow-lg">
+//               <Sparkles className="h-3 w-3" strokeWidth={2.5} />
+//               PREVIEW
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+//     </motion.section>
+//   );
+// }

@@ -25,8 +25,16 @@ const api = {
     const { data } = await axios.post(`${API}/auth/signout`, {}, { headers: authHeaders() });
     return data;
   },
-  async resetPassword(email) {
-    const { data } = await axios.post(`${API}/auth/reset-password`, { email });
+  async resetPassword(email, redirectTo) {
+    const { data } = await axios.post(`${API}/auth/reset-password`, { email, redirect_to: redirectTo });
+    return data;
+  },
+  async updatePassword(access_token, new_password) {
+    const { data } = await axios.post(`${API}/auth/update-password`, { access_token, new_password });
+    return data;
+  },
+  async refreshToken(refresh_token) {
+    const { data } = await axios.post(`${API}/auth/refresh`, { refresh_token });
     return data;
   },
   // Profile
