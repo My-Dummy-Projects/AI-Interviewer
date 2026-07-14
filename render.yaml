@@ -22,3 +22,28 @@ services:
     envVars:
       - key: REACT_APP_BACKEND_URL
         value: https://ai-interviewer-b1ww.onrender.com/
+
+  - type: web
+    name: voxa-backend
+    runtime: python
+    repo: https://github.com/your-org/ai-interviewer
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/
+    envVars:
+      - key: MONGO_URL
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: VAPI_PUBLIC_KEY
+        sync: false
+      - key: VAPI_ASSISTANT_ID
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://ai-interviewer-b1ww.onrender.com/
