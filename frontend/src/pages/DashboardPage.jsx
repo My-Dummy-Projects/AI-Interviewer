@@ -1103,43 +1103,48 @@ export default function DashboardPage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                 {visibleInterviews.map((interview, idx) => (
-                  <motion.div
+                  <Link
                     key={interview.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: Math.min(idx * 0.03, 0.3) }}
-                    className="group relative rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-4 sm:p-5 hover:border-white/20 hover:bg-[#0d0d0d] transition-all duration-300 overflow-hidden"
+                    to={`/report/${interview.id}`}
+                    className="block group"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="relative">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="h-9 w-9 rounded-lg bg-cyan-400/10 border border-white/5 flex items-center justify-center">
-                          <Briefcase className="h-4 w-4 text-cyan-300" strokeWidth={1.5} />
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: Math.min(idx * 0.03, 0.3) }}
+                      className="relative rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-4 sm:p-5 hover:border-white/20 hover:bg-[#0d0d0d] transition-all duration-300 overflow-hidden cursor-pointer"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="relative">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="h-9 w-9 rounded-lg bg-cyan-400/10 border border-white/5 flex items-center justify-center">
+                            <Briefcase className="h-4 w-4 text-cyan-300" strokeWidth={1.5} />
+                          </div>
+                          <div
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${scoreBg(
+                              interview.overallScore
+                            )} ${scoreColor(interview.overallScore)}`}
+                          >
+                            {interview.overallScore}
+                          </div>
                         </div>
-                        <div
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${scoreBg(
-                            interview.overallScore
-                          )} ${scoreColor(interview.overallScore)}`}
-                        >
-                          {interview.overallScore}
+                        <h3 className="text-sm font-semibold text-white truncate">
+                          {interview.jobRole}
+                        </h3>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px] text-zinc-500">
+                          <span>{interview.experienceLevel}</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" strokeWidth={1.5} />
+                            {interview.durationMinutes}m
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" strokeWidth={1.5} />
+                            {fmtDate(interview.completedAt)}
+                          </span>
                         </div>
                       </div>
-                      <h3 className="text-sm font-semibold text-white truncate">
-                        {interview.jobRole}
-                      </h3>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px] text-zinc-500">
-                        <span>{interview.experienceLevel}</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" strokeWidth={1.5} />
-                          {interview.durationMinutes}m
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" strokeWidth={1.5} />
-                          {fmtDate(interview.completedAt)}
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                  </Link>
                 ))}
               </div>
 

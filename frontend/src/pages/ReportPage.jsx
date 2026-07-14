@@ -1,6 +1,6 @@
-import React from "react";
-import { Link, useNavigate, Navigate } from "react-router-dom";
-import { RotateCcw, ArrowLeft, CheckCircle2, TrendingUp, TrendingDown, GraduationCap } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate, useParams, Navigate } from "react-router-dom";
+import { RotateCcw, ArrowLeft, CheckCircle2, TrendingUp, TrendingDown, GraduationCap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -11,6 +11,7 @@ import {
 import { useInterview } from "@/context/InterviewContext";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
+import api from "@/lib/api";
 
 const RECS = {
   "Strong Hire": { color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" },
@@ -51,8 +52,37 @@ function ScoreCell({ label, value }) {
 
 export default function ReportPage() {
   const navigate = useNavigate();
-  const { report, setup, reset } = useInterview();
+  const { id } = useParams();
+  const { report: ctxReport, setup: ctxSetup, reset } = useInterview();
+  const [loading, setLoading] = useState(false);
+  const [interviewData, setInterviewData] = useState(null);
 
+  const isHistorical = Boolean(id);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setLoading(true);
+    api.getInterview(id).then((data) => {
+      if (!cancelled) {
+        setInterviewData(data);
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) {
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [id]);
+
+  const report = isHistorical ? interviewData?.report : ctxReport;
+  const setup = isHistorical
+    ? interviewData ? { jobRole: interviewData.jobRole, experienceLevel: interviewData.experienceLevel, durationMinutes: interviewData.durationMinutes } : null
+    : ctxSetup;
+
+  if (!isHistorical && !ctxReport) return <Navigate to="/" replace />;
+  if (isHistorical && !loading && !interviewData) return <Navigate to="/dashboard" replace />;
   if (!report) return <Navigate to="/" replace />;
 
   const rec = RECS[report.finalRecommendation] || RECS["Lean Hire"];
@@ -69,7 +99,7 @@ export default function ReportPage() {
               <VoxaLogo size={26} />
             </Link>
             <div className="hidden md:block h-5 w-px bg-white/10" />
-            <div className="hidden md:block label-overline">03 / Feedback Report</div>
+            <div className="hidden md:block label-overline">{isHistorical ? "Past Report" : "03 / Feedback Report"}</div>
           </>
         }
         right={
@@ -88,6 +118,13 @@ export default function ReportPage() {
         }
       />
 
+      {loading && (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+        </div>
+      )}
+
+      {!loading && (
       <main className="relative max-w-7xl mx-auto px-6 py-10 space-y-10">
         {/* Meta */}
         <section>
@@ -258,19 +295,24 @@ export default function ReportPage() {
           <Button
             variant="outline"
             onClick={() => {
-              reset();
-              navigate("/");
+              if (isHistorical) {
+                navigate("/dashboard");
+              } else {
+                reset();
+                navigate("/");
+              }
             }}
             className="rounded-full h-11 bg-transparent border-white/15 hover:bg-white/5 text-white"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            BACK TO HOME
+            {isHistorical ? "BACK TO DASHBOARD" : "BACK TO HOME"}
           </Button>
           <div className="text-xs font-mono uppercase tracking-widest text-zinc-600">
             End of report
           </div>
         </div>
       </main>
+      )}
     </div>
   );
 }

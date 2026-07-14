@@ -28,6 +28,7 @@ function App() {
               <Route path="/setup" element={<SetupPage />} />
               <Route path="/interview" element={<InterviewPage />} />
               <Route path="/report" element={<ReportPage />} />
+              <Route path="/report/:id" element={<ReportPage />} />
               <Route path="/signin" element={<SignInPage />} />
               <Route path="/signup" element={<SignUpPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />

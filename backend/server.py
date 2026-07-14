@@ -2,6 +2,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from bson.objectid import ObjectId
 import os
 import json
 import logging
@@ -149,6 +150,17 @@ class InterviewSummary(BaseModel):
 class InterviewHistoryResponse(BaseModel):
     interviews: List[InterviewSummary]
     total: int
+
+
+class InterviewDetail(BaseModel):
+    id: str
+    jobRole: str
+    experienceLevel: str
+    durationMinutes: int
+    overallScore: int
+    transcript: List[dict]
+    report: dict
+    completedAt: str
 
 
 class DashboardStats(BaseModel):
@@ -366,6 +378,24 @@ async def get_interviews(current_user=Depends(get_current_user)):
             completedAt=str(doc.get("created_at", "")),
         ))
     return InterviewHistoryResponse(interviews=interviews, total=len(interviews))
+
+
+@api_router.get("/user/interviews/{interview_id}", response_model=InterviewDetail)
+async def get_interview(interview_id: str, current_user=Depends(get_current_user)):
+    collection = db["interviews"]
+    doc = await collection.find_one({"_id": ObjectId(interview_id), "user_id": current_user.id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Interview not found")
+    return InterviewDetail(
+        id=str(doc["_id"]),
+        jobRole=doc.get("jobRole", ""),
+        experienceLevel=doc.get("experienceLevel", ""),
+        durationMinutes=doc.get("durationMinutes", 0),
+        overallScore=doc.get("overallScore", 0),
+        transcript=doc.get("transcript", []),
+        report=doc.get("report", {}),
+        completedAt=str(doc.get("created_at", "")),
+    )
 
 
 @api_router.get("/user/dashboard-stats", response_model=DashboardStats)

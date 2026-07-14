@@ -58,6 +58,10 @@ const api = {
     const { data } = await axios.get(`${API}/user/interviews`, { headers: authHeaders() });
     return data;
   },
+  async getInterview(id) {
+    const { data } = await axios.get(`${API}/user/interviews/${id}`, { headers: authHeaders() });
+    return data;
+  },
 
   // Config
   async getConfig() {
