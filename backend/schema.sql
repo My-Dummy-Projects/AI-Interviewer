@@ -1,9 +1,8 @@
 -- =============================================================
 -- AI Mock Interviewer — Database Schema (PostgreSQL)
 -- =============================================================
--- This schema is designed to mirror the current MongoDB document
--- model while taking advantage of relational integrity, indexing,
--- and Supabase Row-Level Security.
+-- This schema defines the Postgres/Supabase relational model for
+-- interview history, user profiles, and feedback persistence.
 -- =============================================================
 
 -- ─── Profiles ─────────────────────────────────────────────────
@@ -20,6 +19,21 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 );
 
 CREATE INDEX idx_user_profiles_user_id ON user_profiles (user_id);
+
+-- ─── Feedback Entries ───────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS feedback_entries (
+    id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID        NOT NULL REFERENCES user_profiles (user_id) ON DELETE CASCADE,
+    email       TEXT        NOT NULL DEFAULT '',
+    feedback    TEXT        NOT NULL,
+    rating      INT         NULL CHECK (rating IS NULL OR rating BETWEEN 1 AND 5),
+    category    TEXT        NOT NULL DEFAULT '',
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_feedback_entries_user_id ON feedback_entries (user_id);
+CREATE INDEX idx_feedback_entries_created_at ON feedback_entries (created_at DESC);
 
 -- ─── Interviews ───────────────────────────────────────────────
 
@@ -107,6 +121,9 @@ ALTER TABLE interviews ADD COLUMN IF NOT EXISTS final_recommendation TEXT
 
 ALTER TABLE interviews ADD COLUMN IF NOT EXISTS summary TEXT NOT NULL DEFAULT '';
 
+ALTER TABLE interviews ADD COLUMN IF NOT EXISTS transcript JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE interviews ADD COLUMN IF NOT EXISTS report JSONB NOT NULL DEFAULT '{}';
+
 -- ─── Updated-at trigger ───────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -125,6 +142,7 @@ CREATE TRIGGER trg_user_profiles_updated_at
 -- ─── Row-Level Security (Supabase) ────────────────────────────
 
 ALTER TABLE user_profiles         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feedback_entries      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE interviews            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transcript_turns      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE skill_scores          ENABLE ROW LEVEL SECURITY;
@@ -137,6 +155,10 @@ ALTER TABLE learning_suggestions  ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY user_profiles_owner_policy
     ON user_profiles
+    USING (user_id = auth.uid());
+
+CREATE POLICY feedback_entries_owner_policy
+    ON feedback_entries
     USING (user_id = auth.uid());
 
 CREATE POLICY interviews_owner_policy

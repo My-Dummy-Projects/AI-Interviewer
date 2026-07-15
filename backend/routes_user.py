@@ -1,16 +1,103 @@
 from fastapi import APIRouter, Depends, HTTPException
-from bson.objectid import ObjectId
 from datetime import datetime
 
-from config import db, supabase
+from config import supabase
 from models import (
     UserProfileUpdate, UserProfileResponse,
     InterviewSummary, InterviewHistoryResponse, InterviewDetail,
-    DashboardStats,
+    DashboardStats, FeedbackEntryRequest, FeedbackEntryResponse,
 )
 from deps import get_current_user
 
 api_router_user = APIRouter(prefix="/api/user")
+
+
+def fetch_transcript(interview_id: str) -> list:
+    result = supabase.table("transcript_turns").select("*").eq("interview_id", interview_id).order("timestamp").execute()
+    return [
+        {"role": t["role"], "text": t["text"], "timestamp": t["timestamp"]}
+        for t in (result.data or [])
+    ]
+
+
+def fetch_report(interview_id: str) -> dict:
+    report = {
+        "skills": {"technical": 0, "communication": 0, "problemSolving": 0, "confidence": 0},
+        "strengths": [],
+        "improvements": [],
+        "questionEvaluations": [],
+        "learningSuggestions": [],
+    }
+
+    skills_result = supabase.table("skill_scores").select("*").eq("interview_id", interview_id).execute()
+    if skills_result.data:
+        s = skills_result.data[0]
+        report["skills"] = {
+            "technical": s.get("technical", 0),
+            "communication": s.get("communication", 0),
+            "problemSolving": s.get("problem_solving", 0),
+            "confidence": s.get("confidence", 0),
+        }
+
+    strengths_result = supabase.table("interview_strengths").select("text").eq("interview_id", interview_id).execute()
+    report["strengths"] = [r["text"] for r in (strengths_result.data or [])]
+
+    improvements_result = supabase.table("interview_improvements").select("text").eq("interview_id", interview_id).execute()
+    report["improvements"] = [r["text"] for r in (improvements_result.data or [])]
+
+    eval_result = supabase.table("question_evaluations").select("*").eq("interview_id", interview_id).execute()
+    report["questionEvaluations"] = [
+        {
+            "question": e.get("question", ""),
+            "answerSummary": e.get("answer_summary", ""),
+            "score": e.get("score", 0),
+            "feedback": e.get("feedback", ""),
+        }
+        for e in (eval_result.data or [])
+    ]
+
+    suggestions_result = supabase.table("learning_suggestions").select("text").eq("interview_id", interview_id).execute()
+    report["learningSuggestions"] = [r["text"] for r in (suggestions_result.data or [])]
+
+    return report
+
+
+def normalize_interview_record(record: dict) -> dict:
+    if not isinstance(record, dict):
+        return {}
+
+    interview_id = record.get("id", "")
+    job_role = record.get("jobRole") or record.get("job_role") or ""
+    experience_level = record.get("experienceLevel") or record.get("experience_level") or ""
+    duration_minutes = record.get("durationMinutes")
+    if duration_minutes is None:
+        duration_minutes = record.get("duration_minutes", 0)
+    overall_score = record.get("overallScore")
+    if overall_score is None:
+        overall_score = record.get("overall_score", 0)
+    completed_at = record.get("created_at") or record.get("createdAt") or ""
+    final_recommendation = record.get("finalRecommendation") or record.get("final_recommendation") or ""
+    summary = record.get("summary", "")
+
+    report = fetch_report(interview_id)
+    report.update({
+        "overallScore": int(overall_score or 0),
+        "finalRecommendation": final_recommendation,
+        "summary": summary,
+    })
+
+    return {
+        "id": interview_id,
+        "jobRole": job_role,
+        "experienceLevel": experience_level,
+        "durationMinutes": int(duration_minutes or 0),
+        "overallScore": int(overall_score or 0),
+        "transcript": fetch_transcript(interview_id),
+        "report": report,
+        "completedAt": str(completed_at),
+        "finalRecommendation": final_recommendation,
+        "summary": summary,
+    }
 
 
 @api_router_user.get("/profile", response_model=UserProfileResponse)
@@ -73,47 +160,72 @@ async def update_profile(req: UserProfileUpdate, current_user=Depends(get_curren
 @api_router_user.get("/interviews", response_model=InterviewHistoryResponse)
 async def get_interviews(current_user=Depends(get_current_user)):
     user_id = current_user.id
-    collection = db["interviews"]
-    cursor = collection.find({"user_id": user_id}).sort("created_at", -1).limit(50)
-    interviews = []
-    async for doc in cursor:
-        interviews.append(InterviewSummary(
-            id=str(doc["_id"]),
-            jobRole=doc.get("jobRole", ""),
-            experienceLevel=doc.get("experienceLevel", ""),
-            durationMinutes=doc.get("durationMinutes", 0),
-            overallScore=doc.get("overallScore", 0),
-            completedAt=str(doc.get("created_at", "")),
-        ))
+    result = supabase.table("interviews").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(50).execute()
+    docs = result.data or []
+    interviews = [
+        InterviewSummary(
+            id=doc.get("id", ""),
+            jobRole=doc.get("job_role") or doc.get("jobRole") or "",
+            experienceLevel=doc.get("experience_level") or doc.get("experienceLevel") or "",
+            durationMinutes=int(doc.get("duration_minutes") or doc.get("durationMinutes") or 0),
+            overallScore=int(doc.get("overall_score") or doc.get("overallScore") or 0),
+            completedAt=str(doc.get("created_at") or doc.get("createdAt") or ""),
+        )
+        for doc in docs
+    ]
     return InterviewHistoryResponse(interviews=interviews, total=len(interviews))
 
 
 @api_router_user.get("/interviews/{interview_id}", response_model=InterviewDetail)
 async def get_interview(interview_id: str, current_user=Depends(get_current_user)):
-    collection = db["interviews"]
-    doc = await collection.find_one({"_id": ObjectId(interview_id), "user_id": current_user.id})
-    if not doc:
+    result = supabase.table("interviews").select("*").eq("id", interview_id).eq("user_id", current_user.id).execute()
+    docs = result.data or []
+    if not docs:
         raise HTTPException(status_code=404, detail="Interview not found")
+    doc = docs[0]
+    normalized = normalize_interview_record(doc)
     return InterviewDetail(
-        id=str(doc["_id"]),
-        jobRole=doc.get("jobRole", ""),
-        experienceLevel=doc.get("experienceLevel", ""),
-        durationMinutes=doc.get("durationMinutes", 0),
-        overallScore=doc.get("overallScore", 0),
-        transcript=doc.get("transcript", []),
-        report=doc.get("report", {}),
-        completedAt=str(doc.get("created_at", "")),
+        id=normalized["id"],
+        jobRole=normalized["jobRole"],
+        experienceLevel=normalized["experienceLevel"],
+        durationMinutes=normalized["durationMinutes"],
+        overallScore=normalized["overallScore"],
+        transcript=normalized["transcript"],
+        report=normalized["report"],
+        completedAt=normalized["completedAt"],
+    )
+
+
+@api_router_user.post("/feedback", response_model=FeedbackEntryResponse)
+async def submit_tool_feedback(req: FeedbackEntryRequest, current_user=Depends(get_current_user)):
+    if not req.feedback or not req.feedback.strip():
+        raise HTTPException(status_code=400, detail="Feedback text is required")
+
+    created_at = datetime.utcnow().isoformat()
+    result = supabase.table("feedback_entries").insert({
+        "user_id": current_user.id,
+        "email": getattr(current_user, "email", ""),
+        "feedback": req.feedback.strip(),
+        "rating": req.rating,
+        "category": req.category or "",
+        "created_at": created_at,
+    }).execute()
+
+    inserted = (result.data or [{}])[0]
+    return FeedbackEntryResponse(
+        id=inserted.get("id", ""),
+        feedback=req.feedback.strip(),
+        rating=req.rating,
+        category=req.category,
+        createdAt=created_at,
     )
 
 
 @api_router_user.get("/dashboard-stats", response_model=DashboardStats)
 async def get_dashboard_stats(current_user=Depends(get_current_user)):
     user_id = current_user.id
-    collection = db["interviews"]
-    cursor = collection.find({"user_id": user_id}).sort("created_at", -1).limit(50)
-    interviews = []
-    async for doc in cursor:
-        interviews.append(doc)
+    result = supabase.table("interviews").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(50).execute()
+    interviews = result.data or []
 
     if not interviews:
         return DashboardStats(
@@ -127,15 +239,19 @@ async def get_dashboard_stats(current_user=Depends(get_current_user)):
             skillAverages={},
         )
 
-    scores = [i.get("overallScore", 0) for i in interviews]
-    report_scores = [i.get("report", {}).get("skills", {}) for i in interviews if i.get("report")]
-    total_minutes = sum(i.get("durationMinutes", 0) for i in interviews)
+    scores = [int(doc.get("overall_score", 0) or 0) for doc in interviews]
+    total_minutes = sum(int(doc.get("duration_minutes", 0) or 0) for doc in interviews)
+    interview_ids = [doc["id"] for doc in interviews]
 
     skill_avgs = {}
-    if report_scores:
-        for key in ("technical", "communication", "problemSolving", "confidence"):
-            vals = [s.get(key, 0) for s in report_scores if s.get(key) is not None]
-            skill_avgs[key] = round(sum(vals) / len(vals), 1) if vals else 0
+    if interview_ids:
+        skill_result = supabase.table("skill_scores").select("*").in_("interview_id", interview_ids).execute()
+        skill_rows = skill_result.data or []
+        if skill_rows:
+            for key, col in [("technical", "technical"), ("communication", "communication"),
+                             ("problemSolving", "problem_solving"), ("confidence", "confidence")]:
+                vals = [r.get(col, 0) for r in skill_rows if r.get(col) is not None]
+                skill_avgs[key] = round(sum(vals) / len(vals), 1) if vals else 0
 
     dist = {"0-25": 0, "26-50": 0, "51-75": 0, "76-100": 0}
     for s in scores:

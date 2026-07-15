@@ -14,23 +14,39 @@ function authHeaders() {
 const api = {
   // Auth
   async signup(email, password) {
-    const { data } = await axios.post(`${API}/auth/signup`, { email, password });
+    const { data } = await axios.post(`${API}/auth/signup`, {
+      email,
+      password,
+    });
     return data;
   },
   async signin(email, password) {
-    const { data } = await axios.post(`${API}/auth/signin`, { email, password });
+    const { data } = await axios.post(`${API}/auth/signin`, {
+      email,
+      password,
+    });
     return data;
   },
   async signout() {
-    const { data } = await axios.post(`${API}/auth/signout`, {}, { headers: authHeaders() });
+    const { data } = await axios.post(
+      `${API}/auth/signout`,
+      {},
+      { headers: authHeaders() },
+    );
     return data;
   },
   async resetPassword(email, redirectTo) {
-    const { data } = await axios.post(`${API}/auth/reset-password`, { email, redirect_to: redirectTo });
+    const { data } = await axios.post(`${API}/auth/reset-password`, {
+      email,
+      redirect_to: redirectTo,
+    });
     return data;
   },
   async updatePassword(access_token, new_password) {
-    const { data } = await axios.post(`${API}/auth/update-password`, { access_token, new_password });
+    const { data } = await axios.post(`${API}/auth/update-password`, {
+      access_token,
+      new_password,
+    });
     return data;
   },
   async refreshToken(refresh_token) {
@@ -39,27 +55,37 @@ const api = {
   },
   // Profile
   async getProfile() {
-    const { data } = await axios.get(`${API}/user/profile`, { headers: authHeaders() });
+    const { data } = await axios.get(`${API}/user/profile`, {
+      headers: authHeaders(),
+    });
     return data;
   },
   async updateProfile(profile) {
-    const { data } = await axios.put(`${API}/user/profile`, profile, { headers: authHeaders() });
+    const { data } = await axios.put(`${API}/user/profile`, profile, {
+      headers: authHeaders(),
+    });
     return data;
   },
 
   // Dashboard
   async getDashboardStats() {
-    const { data } = await axios.get(`${API}/user/dashboard-stats`, { headers: authHeaders() });
+    const { data } = await axios.get(`${API}/user/dashboard-stats`, {
+      headers: authHeaders(),
+    });
     return data;
   },
 
   // Interviews
   async getInterviews() {
-    const { data } = await axios.get(`${API}/user/interviews`, { headers: authHeaders() });
+    const { data } = await axios.get(`${API}/user/interviews`, {
+      headers: authHeaders(),
+    });
     return data;
   },
   async getInterview(id) {
-    const { data } = await axios.get(`${API}/user/interviews/${id}`, { headers: authHeaders() });
+    const { data } = await axios.get(`${API}/user/interviews/${id}`, {
+      headers: authHeaders(),
+    });
     return data;
   },
 
@@ -74,6 +100,13 @@ const api = {
     const { data } = await axios.post(`${API}/interview/feedback`, payload, {
       headers: authHeaders(),
       timeout: 90_000,
+    });
+    return data;
+  },
+
+  async submitToolFeedback(payload) {
+    const { data } = await axios.post(`${API}/user/feedback`, payload, {
+      headers: authHeaders(),
     });
     return data;
   },

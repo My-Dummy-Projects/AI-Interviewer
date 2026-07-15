@@ -622,12 +622,12 @@ export default function DashboardPage() {
             >
               <Settings className="h-3.5 w-3.5" strokeWidth={1.5} />
             </Link>
-              <button
-                onClick={handleSignOut}
-                disabled={signingOut}
-                aria-label="Sign out"
-                className="h-8 w-8 rounded-full border border-white/10 hover:bg-red-500/10 hover:border-red-400/30 text-zinc-500 hover:text-red-300 flex items-center justify-center transition-all disabled:opacity-40"
-              >
+            <button
+              onClick={handleSignOut}
+              disabled={signingOut}
+              aria-label="Sign out"
+              className="h-8 w-8 rounded-full border border-white/10 hover:bg-red-500/10 hover:border-red-400/30 text-zinc-500 hover:text-red-300 flex items-center justify-center transition-all disabled:opacity-40"
+            >
               <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} />
             </button>
           </>
@@ -801,6 +801,29 @@ export default function DashboardPage() {
               )}
             </div>
           </motion.div>
+        </section>
+
+        <section className="mb-8">
+          <div className="rounded-2xl border border-white/[0.06] bg-[#0a0a0a] p-6 sm:p-7">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-[10px] font-mono tracking-[0.25em] uppercase text-cyan-300/80">
+                  Feedback
+                </p>
+                <h2 className="mt-3 text-xl font-semibold text-white" style={{ fontFamily: "var(--font-heading)" }}>
+                  Help us improve the tool
+                </h2>
+                <p className="mt-2 text-sm text-zinc-400 max-w-2xl leading-relaxed">
+                  Share your thoughts on the app experience and suggest enhancements for future updates.
+                </p>
+              </div>
+              <Link to="/feedback">
+                <Button className="h-11 rounded-full bg-cyan-400 hover:bg-cyan-300 text-black px-6 text-sm font-semibold">
+                  Submit feedback
+                </Button>
+              </Link>
+            </div>
+          </div>
         </section>
 
         {/* ─── empty state ─── */}
@@ -1105,7 +1128,10 @@ export default function DashboardPage() {
                 {visibleInterviews.map((interview, idx) => (
                   <Link
                     key={interview.id}
-                    to={`/report/${interview.id}`}
+                    to={{
+                      pathname: `/report/${interview.id}`,
+                      state: { interview },
+                    }}
                     className="block group"
                   >
                     <motion.div

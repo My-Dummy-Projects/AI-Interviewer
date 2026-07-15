@@ -1,5 +1,4 @@
 from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
 from supabase import create_client, Client as SupabaseClient
 import os
 import logging
@@ -28,6 +27,3 @@ VAPI_PUBLIC_KEY = os.environ.get('VAPI_PUBLIC_KEY', '')
 VAPI_ASSISTANT_ID = os.environ.get('VAPI_ASSISTANT_ID', '')
 CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
 
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]

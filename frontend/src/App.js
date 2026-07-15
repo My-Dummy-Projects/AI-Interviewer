@@ -15,6 +15,7 @@ import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import ProfilePage from "@/pages/ProfilePage";
 import DashboardPage from "@/pages/DashboardPage";
+import FeedbackPage from "@/pages/FeedbackPage";
 
 function App() {
   return (
@@ -23,20 +24,24 @@ function App() {
         <InterviewProvider>
           <BrowserRouter>
             <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/setup" element={<SetupPage />} />
-              <Route path="/interview" element={<InterviewPage />} />
-              <Route path="/report" element={<ReportPage />} />
-              <Route path="/report/:id" element={<ReportPage />} />
-              <Route path="/signin" element={<SignInPage />} />
-              <Route path="/signup" element={<SignUpPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/setup" element={<SetupPage />} />
+                <Route path="/interview" element={<InterviewPage />} />
+                <Route path="/report" element={<ReportPage />} />
+                <Route path="/report/:id" element={<ReportPage />} />
+                <Route path="/signin" element={<SignInPage />} />
+                <Route path="/signup" element={<SignUpPage />} />
+                <Route
+                  path="/forgot-password"
+                  element={<ForgotPasswordPage />}
+                />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/feedback" element={<FeedbackPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
             </ErrorBoundary>
           </BrowserRouter>
           <Toaster

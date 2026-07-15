@@ -40,6 +40,20 @@ class FeedbackReport(BaseModel):
     summary: str
 
 
+class FeedbackEntryRequest(BaseModel):
+    feedback: str
+    rating: Optional[int] = None
+    category: Optional[str] = None
+
+
+class FeedbackEntryResponse(BaseModel):
+    id: str
+    feedback: str
+    rating: Optional[int] = None
+    category: Optional[str] = None
+    createdAt: str
+
+
 class ConfigResponse(BaseModel):
     vapiPublicKey: str
     vapiAssistantId: str

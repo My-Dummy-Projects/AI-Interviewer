@@ -3,8 +3,92 @@ import re
 from datetime import datetime
 from openai import OpenAI
 
-from config import logger, OPENROUTER_API_KEY, OPENROUTER_MODEL, db
+from config import logger, OPENROUTER_API_KEY, OPENROUTER_MODEL, supabase
 from models import FeedbackRequest, FeedbackReport, SkillScores, QuestionEvaluation
+
+
+def build_interview_insert_payload(req: FeedbackRequest, report: FeedbackReport, current_user) -> dict:
+    return {
+        "user_id": current_user.id,
+        "job_role": req.jobRole,
+        "experience_level": req.experienceLevel,
+        "duration_minutes": req.durationMinutes,
+        "overall_score": report.overallScore,
+        "final_recommendation": report.finalRecommendation,
+        "summary": report.summary,
+        "created_at": datetime.utcnow().isoformat(),
+    }
+
+
+def _try_insert(table: str, data, label: str = ""):
+    try:
+        supabase.table(table).insert(data).execute()
+        logger.info(f"  ✓ {table}{' (' + label + ')' if label else ''}")
+        return True
+    except Exception as e:
+        logger.warning(f"  ✗ {table}{' (' + label + ')' if label else ''}: {e}")
+        return False
+
+
+def save_normalized_data(req: FeedbackRequest, report: FeedbackReport, interview_id: str):
+    logger.info(f"Saving normalized data for interview {interview_id}")
+
+    transcript_turns_data = [
+        {
+            "interview_id": interview_id,
+            "role": t.role,
+            "text": t.text,
+            "timestamp": t.timestamp or 0,
+        }
+        for t in req.transcript if t.text and t.text.strip()
+    ]
+    if transcript_turns_data:
+        _try_insert("transcript_turns", transcript_turns_data, f"{len(transcript_turns_data)} turns")
+    else:
+        logger.info("  - transcript_turns: no turns to save")
+
+    _try_insert("skill_scores", {
+        "interview_id": interview_id,
+        "technical": report.skills.technical,
+        "communication": report.skills.communication,
+        "problem_solving": report.skills.problemSolving,
+        "confidence": report.skills.confidence,
+    }, "scores")
+
+    if report.questionEvaluations:
+        _try_insert("question_evaluations", [
+            {
+                "interview_id": interview_id,
+                "question": q.question,
+                "answer_summary": q.answerSummary,
+                "score": q.score,
+                "feedback": q.feedback,
+            }
+            for q in report.questionEvaluations
+        ], f"{len(report.questionEvaluations)} evaluations")
+    else:
+        logger.info("  - question_evaluations: none to save")
+
+    if report.strengths:
+        _try_insert("interview_strengths", [
+            {"interview_id": interview_id, "text": s} for s in report.strengths
+        ], f"{len(report.strengths)} strengths")
+    else:
+        logger.info("  - interview_strengths: none to save")
+
+    if report.improvements:
+        _try_insert("interview_improvements", [
+            {"interview_id": interview_id, "text": s} for s in report.improvements
+        ], f"{len(report.improvements)} improvements")
+    else:
+        logger.info("  - interview_improvements: none to save")
+
+    if report.learningSuggestions:
+        _try_insert("learning_suggestions", [
+            {"interview_id": interview_id, "text": s} for s in report.learningSuggestions
+        ], f"{len(report.learningSuggestions)} suggestions")
+    else:
+        logger.info("  - learning_suggestions: none to save")
 
 
 def build_feedback_prompt(req: FeedbackRequest) -> str:
@@ -145,18 +229,15 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
 
     if current_user:
         try:
-            interviews_coll = db["interviews"]
-            await interviews_coll.insert_one({
-                "user_id": current_user.id,
-                "jobRole": req.jobRole,
-                "experienceLevel": req.experienceLevel,
-                "durationMinutes": req.durationMinutes,
-                "transcript": [t.model_dump() for t in req.transcript],
-                "report": report.model_dump(),
-                "overallScore": report.overallScore,
-                "created_at": datetime.utcnow(),
-            })
+            payload = build_interview_insert_payload(req, report, current_user)
+            result = supabase.table("interviews").insert(payload).execute()
+            if result.data:
+                interview_id = result.data[0]["id"]
+                save_normalized_data(req, report, interview_id)
+                logger.info(f"Interview {interview_id} saved with normalized data")
+            else:
+                logger.warning("Failed to save interview: no data returned")
         except Exception as e:
-            logger.warning(f"Failed to save interview history: {e}")
+            logger.warning(f"Failed to save interview: {e}")
 
     return report

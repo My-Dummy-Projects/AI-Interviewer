@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter
 from starlette.middleware.cors import CORSMiddleware
 
-from config import VAPI_PUBLIC_KEY, VAPI_ASSISTANT_ID, CORS_ORIGINS, client
+from config import VAPI_PUBLIC_KEY, VAPI_ASSISTANT_ID, CORS_ORIGINS
 from models import ConfigResponse
 from routes_auth import api_router_auth
 from routes_user import api_router_user
