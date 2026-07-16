@@ -23,7 +23,13 @@ const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || "";
 function App() {
   return (
     <div className="App">
-      <ClerkProvider publishableKey={clerkPubKey}>
+      <ClerkProvider
+        publishableKey={clerkPubKey}
+        afterSignUpUrl="/dashboard"
+        afterSignInUrl="/dashboard"
+        signInUrl="/signin"
+        signUpUrl="/signup"
+      >
         <AuthProvider>
           <InterviewProvider>
             <BrowserRouter>

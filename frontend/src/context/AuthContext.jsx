@@ -77,7 +77,7 @@ export function AuthProvider({ children }) {
       }
 
       if (result.status === "complete") {
-        await setActiveSignUp({ session: result.createdSessionId });
+        await setActiveSignUp({ session: result.createdSessionId, redirectUrl: "/dashboard" });
       }
 
       return result;
@@ -96,7 +96,7 @@ export function AuthProvider({ children }) {
       });
 
       if (result.status === "complete") {
-        await setActiveSignIn({ session: result.createdSessionId });
+        await setActiveSignIn({ session: result.createdSessionId, redirectUrl: "/dashboard" });
       }
 
       return result;
@@ -120,7 +120,7 @@ export function AuthProvider({ children }) {
       });
 
       if (result.status === "complete") {
-        await setActiveSignUp({ session: result.createdSessionId });
+        await setActiveSignUp({ session: result.createdSessionId, redirectUrl: "/dashboard" });
       }
 
       return result;
