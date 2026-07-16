@@ -1015,7 +1015,9 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
             <div className="col-span-2">
-              <VoxaLogo size={28} />
+              <Link to={user ? "/dashboard" : "/"}>
+                <VoxaLogo size={28} />
+              </Link>
               <p className="mt-4 text-sm text-zinc-500 max-w-sm leading-relaxed">
                 The voice of your next career move. AI-first mock interviews with
                 honest, actionable feedback.

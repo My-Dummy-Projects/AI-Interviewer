@@ -298,7 +298,9 @@ export default function InterviewPage() {
       <Navbar
         left={
           <>
-            <VoxaLogo size={26} />
+            <Link to={user ? "/dashboard" : "/"}>
+              <VoxaLogo size={26} />
+            </Link>
             <div className="hidden md:block h-5 w-px bg-white/10" />
             <div className="hidden md:block label-overline">02 / Live Interview</div>
           </>

@@ -65,7 +65,7 @@ export default function SetupPage() {
         left={
           <>
 
-            <Link to="/" data-testid="setup-nav-logo">
+            <Link to={user ? '/dashboard' : '/'} data-testid="setup-nav-logo">
               <VoxaLogo size={28} />
             </Link>
             <div className="hidden md:block h-5 w-px bg-white" />

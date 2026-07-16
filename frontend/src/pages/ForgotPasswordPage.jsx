@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
+import { useAuth } from "@/context/AuthContext";
 import { useSignIn } from "@clerk/clerk-react";
 import { LoadingOverlay } from "@/components/LoadingScreen";
 import { toast } from "sonner";
 
 export default function ForgotPasswordPage() {
+  const { user } = useAuth();
   const { signIn, setActive } = useSignIn();
   const [step, setStep] = useState("email");
   const [email, setEmail] = useState("");
@@ -139,7 +141,7 @@ export default function ForgotPasswordPage() {
       <Navbar
         left={
           <>
-            <Link to="/" data-testid="forgot-password-nav-logo"><VoxaLogo size={28} /></Link>
+            <Link to={user ? "/dashboard" : "/"} data-testid="forgot-password-nav-logo"><VoxaLogo size={28} /></Link>
             <div className="hidden md:block h-5 w-px bg-white/10" />
             <div className="hidden md:block label-overline">Reset Password</div>
           </>

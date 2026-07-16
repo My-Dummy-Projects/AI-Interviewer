@@ -88,7 +88,7 @@ export default function ProfilePage() {
       <Navbar
         left={
           <>
-            <Link to="/" data-testid="profile-nav-logo">
+            <Link to={user ? '/dashboard' : '/'} data-testid="profile-nav-logo">
               <VoxaLogo size={28} />
             </Link>
             <div className="hidden md:block h-5 w-px bg-white/10" />
