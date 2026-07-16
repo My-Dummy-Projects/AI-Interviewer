@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime
+from datetime import datetime, timezone
 
 from config import supabase
 from models import (
@@ -139,7 +139,8 @@ async def get_profile(current_user=Depends(get_current_user)):
             break
 
     if not profile:
-        display_name = email.split("@")[0] if email else f"User_{user_id[:8]}"
+        name = getattr(current_user, "name", "") or ""
+        display_name = name or (email.split("@")[0] if email else f"User_{user_id[:8]}")
         supabase.table("user_profiles").insert({
             "user_id": user_id,
             "email": email,
@@ -173,7 +174,7 @@ async def update_profile(req: UserProfileUpdate, current_user=Depends(get_curren
     update_data = {k: v for k, v in req.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
-    update_data["updated_at"] = str(datetime.utcnow())
+    update_data["updated_at"] = str(datetime.now(timezone.utc))
 
     existing = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
     if existing.data:

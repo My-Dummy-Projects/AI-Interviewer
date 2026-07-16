@@ -51,5 +51,8 @@ def test_build_interview_insert_payload_uses_sql_column_names():
     assert payload["overall_score"] == report.overallScore
     assert payload["final_recommendation"] == report.finalRecommendation
     assert payload["summary"] == report.summary
-    assert "transcript" not in payload
-    assert "report" not in payload
+    assert "transcript" in payload
+    assert "report" in payload
+    assert isinstance(payload["transcript"], list)
+    assert isinstance(payload["report"], dict)
+    assert payload["report"]["overallScore"] == report.overallScore

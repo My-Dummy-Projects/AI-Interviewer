@@ -5,6 +5,7 @@ from config import VAPI_PUBLIC_KEY, VAPI_ASSISTANT_ID, CORS_ORIGINS
 from models import ConfigResponse
 from routes_user import api_router_user
 from routes_interview import api_router_interview
+from routes_auth import api_router_auth
 
 app = FastAPI(title="AI Voice Mock Interview MVP")
 
@@ -28,6 +29,7 @@ async def get_config():
 app.include_router(api_base)
 app.include_router(api_router_user)
 app.include_router(api_router_interview)
+app.include_router(api_router_auth)
 
 app.add_middleware(
     CORSMiddleware,

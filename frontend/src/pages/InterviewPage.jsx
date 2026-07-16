@@ -9,6 +9,7 @@ import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { LoadingScreen, LoadingOverlay } from "@/components/LoadingScreen";
 import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 function fmtTime(sec) {
   const m = Math.floor(sec / 60).toString().padStart(2, "0");
@@ -19,6 +20,7 @@ function fmtTime(sec) {
 export default function InterviewPage() {
   const navigate = useNavigate();
   const { setup, transcript, setTranscript, setReport, reset } = useInterview();
+  const { getFreshToken } = useAuth();
 
   const [status, setStatus] = useState("connecting");
   const [error, setError] = useState(null);
@@ -79,6 +81,7 @@ export default function InterviewPage() {
         return;
       }
 
+      await getFreshToken();
       const data = await api.submitFeedback(payload);
       setReport(data);
       navigate("/report");
@@ -86,7 +89,7 @@ export default function InterviewPage() {
       toast.error("Could not generate feedback. Please try again.");
       setSubmitting(false);
     }
-  }, [setup, submitting, navigate, setReport, reset]);
+  }, [setup, submitting, navigate, setReport, reset, getFreshToken]);
   handleEndRef.current = handleEnd;
 
   useEffect(() => {

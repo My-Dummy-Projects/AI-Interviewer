@@ -1,6 +1,7 @@
 import json
 import re
-from datetime import datetime
+import traceback
+from datetime import datetime, timezone
 from openai import OpenAI
 
 from config import logger, OPENROUTER_API_KEY, OPENROUTER_MODEL, supabase
@@ -9,19 +10,36 @@ from models import FeedbackRequest, FeedbackReport, SkillScores, QuestionEvaluat
 
 def ensure_user_profile(current_user) -> None:
     if not supabase or not current_user:
+        logger.warning("ensure_user_profile: supabase client or current_user is None, skipping")
         return
 
     user_id = getattr(current_user, "id", None)
     email = getattr(current_user, "email", "") or ""
+    name = getattr(current_user, "name", "") or ""
     if not user_id:
+        logger.warning("ensure_user_profile: user_id is empty, skipping")
         return
+
+    display_name = name or (email.split("@")[0] if email else f"User_{str(user_id)[:8]}")
 
     try:
         existing = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
         if existing.data:
+            needs_update = (
+                existing.data[0].get("email", "") != email or
+                existing.data[0].get("display_name", "") != display_name
+            )
+            if needs_update:
+                supabase.table("user_profiles").update({
+                    "email": email,
+                    "display_name": display_name,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }).eq("user_id", user_id).execute()
+                logger.info(f"Updated user profile for {user_id}: email={email}, name={display_name}")
+            else:
+                logger.info(f"User profile already up-to-date for {user_id}")
             return
 
-        display_name = email.split("@")[0] if email else f"User_{str(user_id)[:8]}"
         supabase.table("user_profiles").insert({
             "user_id": user_id,
             "email": email,
@@ -29,9 +47,10 @@ def ensure_user_profile(current_user) -> None:
             "avatar_url": "",
             "bio": "",
         }).execute()
-        logger.info(f"Created missing user profile for {user_id}")
+        logger.info(f"Created user profile for {user_id} with display_name={display_name}")
     except Exception as e:
-        logger.warning(f"Failed to ensure user profile for {user_id}: {e}")
+        logger.error(f"Failed to ensure user profile for {user_id}: {e}\n{traceback.format_exc()}")
+        raise
 
 
 def build_interview_insert_payload(req: FeedbackRequest, report: FeedbackReport, current_user) -> dict:
@@ -43,7 +62,9 @@ def build_interview_insert_payload(req: FeedbackRequest, report: FeedbackReport,
         "overall_score": report.overallScore,
         "final_recommendation": report.finalRecommendation,
         "summary": report.summary,
-        "created_at": datetime.utcnow().isoformat(),
+        "transcript": [t.model_dump() for t in req.transcript],
+        "report": report.model_dump(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -256,16 +277,21 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
 
     if current_user:
         try:
+            logger.info(f"Saving interview for user {current_user.id}")
             ensure_user_profile(current_user)
             payload = build_interview_insert_payload(req, report, current_user)
+            logger.info(f"Interview payload built: {json.dumps({k: v for k, v in payload.items() if k != 'transcript'})}")
             result = supabase.table("interviews").insert(payload).execute()
             if result.data:
                 interview_id = result.data[0]["id"]
+                logger.info(f"Interview {interview_id} saved, now saving normalized data")
                 save_normalized_data(req, report, interview_id)
-                logger.info(f"Interview {interview_id} saved with normalized data")
+                logger.info(f"Interview {interview_id} fully saved with normalized data")
             else:
-                logger.warning("Failed to save interview: no data returned")
+                logger.error(f"Failed to save interview: no data returned. Response: {result}")
         except Exception as e:
-            logger.warning(f"Failed to save interview: {e}")
+            logger.error(f"Failed to save interview: {e}\n{traceback.format_exc()}")
+    else:
+        logger.warning("current_user is None, skipping database save")
 
     return report

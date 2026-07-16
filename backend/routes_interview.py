@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 
+from config import logger
 from models import FeedbackRequest, FeedbackReport
 from deps import try_get_user
 from feedback import generate_and_save_feedback
@@ -11,4 +12,6 @@ api_router_interview = APIRouter(prefix="/api/interview")
 async def generate_feedback(req: FeedbackRequest, current_user=Depends(try_get_user)):
     if not req.transcript:
         raise HTTPException(status_code=400, detail="Transcript is empty.")
+    authenticated = current_user is not None
+    logger.info(f"Feedback request received. Authenticated: {authenticated}, User: {getattr(current_user, 'id', None)}, Transcript turns: {len(req.transcript)}")
     return await generate_and_save_feedback(req, current_user)

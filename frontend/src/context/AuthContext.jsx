@@ -135,9 +135,21 @@ export function AuthProvider({ children }) {
     } catch { }
   }, []);
 
+  const getFreshToken = useCallback(async () => {
+    try {
+      const token = await getToken();
+      if (token) {
+        setBearerToken(token);
+      }
+      return token;
+    } catch {
+      return null;
+    }
+  }, [getToken]);
+
   return (
     <AuthContext.Provider
-      value={{ user, loading: loading || !isLoaded, signup, signin, signout, verifySignupOtp, refreshProfile }}
+      value={{ user, loading: loading || !isLoaded, signup, signin, signout, verifySignupOtp, refreshProfile, getFreshToken }}
     >
       {children}
     </AuthContext.Provider>
