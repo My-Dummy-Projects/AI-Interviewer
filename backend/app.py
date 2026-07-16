@@ -3,7 +3,6 @@ from starlette.middleware.cors import CORSMiddleware
 
 from config import VAPI_PUBLIC_KEY, VAPI_ASSISTANT_ID, CORS_ORIGINS
 from models import ConfigResponse
-from routes_auth import api_router_auth
 from routes_user import api_router_user
 from routes_interview import api_router_interview
 
@@ -27,7 +26,6 @@ async def get_config():
 
 
 app.include_router(api_base)
-app.include_router(api_router_auth)
 app.include_router(api_router_user)
 app.include_router(api_router_interview)
 
@@ -39,7 +37,3 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()

@@ -30,12 +30,11 @@ export default function SignInPage() {
       toast.success("Signed in successfully");
       navigate("/dashboard");
     } catch (err) {
-      if (!err.response) {
-        setError("Unable to connect to server. Please check your connection.");
-      } else {
-        const detail = err.response.data?.detail || "";
-        setError(detail || "Invalid email or password");
-      }
+      const detail =
+        err.errors?.[0]?.longMessage ||
+        err.response?.data?.detail ||
+        "";
+      setError(detail || "Invalid email or password");
     } finally {
       setLoading(false);
     }

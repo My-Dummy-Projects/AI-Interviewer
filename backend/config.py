@@ -21,9 +21,11 @@ supabase: Optional[SupabaseClient] = None
 if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
     supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
+CLERK_SECRET_KEY = os.environ.get('CLERK_SECRET_KEY', '')
+CLERK_JWT_ISSUER = os.environ.get('CLERK_JWT_ISSUER', '')
+
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
 OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-oss-20b:free')
 VAPI_PUBLIC_KEY = os.environ.get('VAPI_PUBLIC_KEY', '')
 VAPI_ASSISTANT_ID = os.environ.get('VAPI_ASSISTANT_ID', '')
 CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
-

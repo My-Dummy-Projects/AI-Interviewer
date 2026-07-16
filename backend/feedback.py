@@ -7,6 +7,33 @@ from config import logger, OPENROUTER_API_KEY, OPENROUTER_MODEL, supabase
 from models import FeedbackRequest, FeedbackReport, SkillScores, QuestionEvaluation
 
 
+def ensure_user_profile(current_user) -> None:
+    if not supabase or not current_user:
+        return
+
+    user_id = getattr(current_user, "id", None)
+    email = getattr(current_user, "email", "") or ""
+    if not user_id:
+        return
+
+    try:
+        existing = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+        if existing.data:
+            return
+
+        display_name = email.split("@")[0] if email else f"User_{str(user_id)[:8]}"
+        supabase.table("user_profiles").insert({
+            "user_id": user_id,
+            "email": email,
+            "display_name": display_name,
+            "avatar_url": "",
+            "bio": "",
+        }).execute()
+        logger.info(f"Created missing user profile for {user_id}")
+    except Exception as e:
+        logger.warning(f"Failed to ensure user profile for {user_id}: {e}")
+
+
 def build_interview_insert_payload(req: FeedbackRequest, report: FeedbackReport, current_user) -> dict:
     return {
         "user_id": current_user.id,
@@ -229,6 +256,7 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
 
     if current_user:
         try:
+            ensure_user_profile(current_user)
             payload = build_interview_insert_payload(req, report, current_user)
             result = supabase.table("interviews").insert(payload).execute()
             if result.data:

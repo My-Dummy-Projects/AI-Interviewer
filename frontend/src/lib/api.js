@@ -3,56 +3,20 @@ import axios from "axios";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
 const API = `${BACKEND_URL}/api`;
 
+let _bearerToken = null;
+
+export function setBearerToken(token) {
+  _bearerToken = token;
+}
+
 function authHeaders() {
-  const token = localStorage.getItem("voxa_access_token");
-  if (token) {
-    return { Authorization: `Bearer ${token}` };
+  if (_bearerToken) {
+    return { Authorization: `Bearer ${_bearerToken}` };
   }
   return {};
 }
 
 const api = {
-  // Auth
-  async signup(email, password) {
-    const { data } = await axios.post(`${API}/auth/signup`, {
-      email,
-      password,
-    });
-    return data;
-  },
-  async signin(email, password) {
-    const { data } = await axios.post(`${API}/auth/signin`, {
-      email,
-      password,
-    });
-    return data;
-  },
-  async signout() {
-    const { data } = await axios.post(
-      `${API}/auth/signout`,
-      {},
-      { headers: authHeaders() },
-    );
-    return data;
-  },
-  async resetPassword(email, redirectTo) {
-    const { data } = await axios.post(`${API}/auth/reset-password`, {
-      email,
-      redirect_to: redirectTo,
-    });
-    return data;
-  },
-  async updatePassword(access_token, new_password) {
-    const { data } = await axios.post(`${API}/auth/update-password`, {
-      access_token,
-      new_password,
-    });
-    return data;
-  },
-  async refreshToken(refresh_token) {
-    const { data } = await axios.post(`${API}/auth/refresh`, { refresh_token });
-    return data;
-  },
   // Profile
   async getProfile() {
     const { data } = await axios.get(`${API}/user/profile`, {

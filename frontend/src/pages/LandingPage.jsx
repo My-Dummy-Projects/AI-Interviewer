@@ -20,6 +20,7 @@ import {
   Settings,
   FileText,
   Check,
+  X,
   Star,
   Zap,
   Users,
@@ -372,49 +373,34 @@ function TestimonialCard({ quote, name, role, initials }) {
 const PRICING = [
   {
     name: "Free",
-    tag: "Live now",
     price: "₹0",
-    period: "forever",
-    desc: "Everything you need to crack your next interview, at zero cost.",
+    period: "/ month",
+    desc: "Perfect for trying out Voxa.",
     features: [
-      "Unlimited AI mock interviews",
-      "Voice-first realistic conversation",
-      "Detailed scorecard with skill breakdown",
-      "Interview history & progress dashboard",
-      "Any role, any experience level",
+      "2 mock interviews (5-10 min each)",
+      "Instant AI feedback & evaluation",
+      "Overall score & skill breakdown",
+      "Technical & HR interviews",
     ],
-    cta: { label: "Start free", to: "/setup", primary: true, testid: "pricing-free-cta" },
+    note: "No history, analytics, or progress tracking.",
+    cta: { label: "Get Started Free", to: "/signin", primary: true, testid: "pricing-free-cta" },
+    upgradeMsg: "Try Voxa with 2 interviews and experience AI-powered mock interviews.",
   },
   {
     name: "Pro",
-    tag: "Coming soon",
     price: "₹499",
     period: "/ month",
-    desc: "Deeper feedback, custom rubrics, and advanced prep tools.",
+    desc: "For serious job seekers preparing consistently.",
     features: [
-      "Everything in Free",
-      "Custom rubrics per role & company",
-      "PDF & shareable interview reports",
-      "Difficulty modes (Easy → Ruthless)",
-      "Extended 30+ min deep-dive sessions",
+      "10 interviews/month · Up to 30 min each",
+      "Everything in Free, plus:",
+      "History, analytics & progress tracking",
+      "Score trends, streaks & goal setting",
     ],
-    cta: { label: "Join waitlist", to: "#waitlist", primary: false, testid: "pricing-pro-cta", disabled: true },
+    note: "Best for active job seekers, students & professionals.",
+    cta: { label: "Subscribe Now", to: "#subscribe", primary: true, testid: "pricing-pro-cta", disabled: true },
     highlight: true,
-  },
-  {
-    name: "Team",
-    tag: "Coming soon",
-    price: "₹1,499",
-    period: "/ seat / month",
-    desc: "For bootcamps, career centres, and hiring teams.",
-    features: [
-      "Everything in Pro",
-      "Cohort dashboards & batch analytics",
-      "Custom company interviewer personas",
-      "Bulk candidate onboarding",
-      "Dedicated success manager",
-    ],
-    cta: { label: "Join waitlist", to: "#waitlist", primary: false, testid: "pricing-team-cta", disabled: true },
+    upgradeMsg: "Practice consistently and improve with detailed insights & saved history.",
   },
 ];
 
@@ -422,7 +408,7 @@ function PricingCard({ tier }) {
   const isHighlight = tier.highlight;
   return (
     <div
-      className={`relative rounded-2xl border p-8 h-full flex flex-col ${
+      className={`relative rounded-2xl border p-6 h-full flex flex-col ${
         isHighlight
           ? "border-cyan-400/40 bg-gradient-to-b from-cyan-400/[0.06] to-transparent"
           : "border-white/10 bg-[#0a0a0a]"
@@ -430,7 +416,7 @@ function PricingCard({ tier }) {
     >
       {isHighlight && (
         <div className="absolute -top-3 left-6 font-mono text-[10px] tracking-widest uppercase bg-cyan-300 text-black px-2 py-1 rounded">
-          Most Loved
+          Recommended
         </div>
       )}
       <div className="flex items-center justify-between">
@@ -440,21 +426,23 @@ function PricingCard({ tier }) {
         >
           {tier.name}
         </h3>
-        <span className="font-mono text-[10px] tracking-widest uppercase text-zinc-500">
-          {tier.tag}
-        </span>
+        {tier.tag && (
+          <span className="font-mono text-[10px] tracking-widest uppercase text-zinc-500">
+            {tier.tag}
+          </span>
+        )}
       </div>
-      <div className="mt-6 flex items-baseline gap-1">
+      <div className="mt-4 flex items-baseline gap-1">
         <span
-          className="text-5xl font-black tracking-tighter text-white"
+          className="text-4xl font-black tracking-tighter text-white"
           style={{ fontFamily: "var(--font-heading)" }}
         >
           {tier.price}
         </span>
         <span className="text-sm text-zinc-500">{tier.period}</span>
       </div>
-      <p className="mt-3 text-sm text-zinc-400">{tier.desc}</p>
-      <ul className="mt-6 space-y-3 flex-1">
+      <p className="mt-2 text-sm text-zinc-400">{tier.desc}</p>
+      <ul className="mt-5 space-y-2.5 flex-1">
         {tier.features.map((f, i) => (
           <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
             <Check className="h-4 w-4 text-cyan-300 mt-0.5 shrink-0" strokeWidth={2} />
@@ -462,11 +450,14 @@ function PricingCard({ tier }) {
           </li>
         ))}
       </ul>
-      <div className="mt-8">
+      {tier.note && (
+        <p className="mt-4 text-xs text-zinc-500 leading-relaxed">{tier.note}</p>
+      )}
+      <div className="mt-6">
         {tier.cta.disabled ? (
           <Button
             data-testid={tier.cta.testid}
-            onClick={() => toast.info("Waitlist opens soon. We'll email you first.")}
+            onClick={() => toast.info("Subscriptions coming soon! We'll keep you posted.")}
             variant="outline"
             className="w-full rounded-full h-11 bg-transparent border-white/15 text-white hover:bg-white/5"
           >
@@ -488,6 +479,11 @@ function PricingCard({ tier }) {
           </Link>
         )}
       </div>
+      {tier.upgradeMsg && (
+        <p className="mt-3 text-xs text-zinc-500 text-center leading-relaxed">
+          {tier.upgradeMsg}
+        </p>
+      )}
     </div>
   );
 }
@@ -495,7 +491,7 @@ function PricingCard({ tier }) {
 const FAQS = [
   {
     q: "Is Voxa really free?",
-    a: "Yes. The current MVP is 100% free. Just create an account and you can start an interview in under 30 seconds. Paid tiers (Pro, Team) will layer on custom rubrics and team dashboards — but the core voice-first interview loop will always have a free path.",
+    a: "Yes, the Free plan gives you 2 mock interviews at no cost with interview durations of 5 or 10 minutes, instant AI feedback, and full question-by-question evaluation. The Pro plan adds advanced features, longer sessions, and detailed progress tracking for serious preparation.",
   },
   {
     q: "How does the voice interview work?",
@@ -936,15 +932,14 @@ export default function LandingPage() {
               className="mt-3 text-4xl md:text-5xl font-black tracking-tighter text-white"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              Free while we&apos;re beta.{" "}
-              <span className="text-zinc-500">Fair when we&apos;re not.</span>
+              Simple, transparent pricing.{" "}
+              <span className="text-zinc-500">Start free.</span>
             </h2>
             <p className="mt-4 text-lg text-zinc-400">
-              Voice interviews cost real compute. We charge only for advanced
-              features — never for the core practice loop.
+              Choose the plan that fits your preparation journey. Upgrade anytime.
             </p>
           </div>
-          <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="mt-14 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
             {PRICING.map((tier) => (
               <PricingCard key={tier.name} tier={tier} />
             ))}
