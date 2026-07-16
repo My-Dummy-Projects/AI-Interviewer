@@ -92,7 +92,7 @@ export default function InterviewPage() {
       toast.error("Could not generate feedback. Please try again.");
       setSubmitting(false);
     }
-  }, [setup, submitting, navigate, setReport, reset, getFreshToken]);
+  }, [setup, submitting, navigate, setReport, reset, getFreshToken, user]);
   handleEndRef.current = handleEnd;
 
   useEffect(() => {
