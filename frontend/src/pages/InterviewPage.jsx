@@ -20,7 +20,7 @@ function fmtTime(sec) {
 export default function InterviewPage() {
   const navigate = useNavigate();
   const { setup, transcript, setTranscript, setReport, reset } = useInterview();
-  const { getFreshToken } = useAuth();
+  const { getFreshToken, user } = useAuth();
 
   const [status, setStatus] = useState("connecting");
   const [error, setError] = useState(null);
@@ -72,6 +72,9 @@ export default function InterviewPage() {
           text: t.text,
           timestamp: t.timestamp,
         })),
+        userId: user?.id || "",
+        email: user?.email || "",
+        displayName: user?.display_name || user?.name || "",
       };
 
       if (payload.transcript.length === 0) {

@@ -1,6 +1,7 @@
 import json
 import re
 import traceback
+from types import SimpleNamespace
 from datetime import datetime, timezone
 from openai import OpenAI
 
@@ -62,8 +63,6 @@ def build_interview_insert_payload(req: FeedbackRequest, report: FeedbackReport,
         "overall_score": report.overallScore,
         "final_recommendation": report.finalRecommendation,
         "summary": report.summary,
-        "transcript": [t.model_dump() for t in req.transcript],
-        "report": report.model_dump(),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -241,6 +240,22 @@ def fallback_report(req: FeedbackRequest, reason: str) -> FeedbackReport:
     )
 
 
+def _resolve_user(current_user, req: FeedbackRequest):
+    if current_user:
+        return current_user
+    if req.userId:
+        from deps import normalize_user_id
+        user_id = normalize_user_id(req.userId)
+        if user_id:
+            logger.info(f"Using fallback user info from request body: {user_id}")
+            return SimpleNamespace(
+                id=user_id,
+                email=req.email or "",
+                name=req.displayName or ""
+            )
+    return None
+
+
 async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) -> FeedbackReport:
     if not OPENROUTER_API_KEY:
         logger.warning("OPENROUTER_API_KEY missing, returning fallback report.")
@@ -274,6 +289,8 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
         except Exception as e:
             logger.exception("Feedback generation failed")
             report = fallback_report(req, f"LLM error: {type(e).__name__}: {str(e)[:200]}")
+
+    current_user = _resolve_user(current_user, req)
 
     if current_user:
         try:

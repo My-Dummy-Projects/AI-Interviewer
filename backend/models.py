@@ -13,6 +13,9 @@ class FeedbackRequest(BaseModel):
     experienceLevel: str
     durationMinutes: int
     transcript: List[TranscriptTurn]
+    userId: Optional[str] = None
+    email: Optional[str] = None
+    displayName: Optional[str] = None
 
 
 class SkillScores(BaseModel):

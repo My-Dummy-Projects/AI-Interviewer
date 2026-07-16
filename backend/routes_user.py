@@ -7,7 +7,7 @@ from models import (
     InterviewSummary, InterviewHistoryResponse, InterviewDetail,
     DashboardStats, FeedbackEntryRequest, FeedbackEntryResponse,
 )
-from deps import get_current_user, normalize_user_id
+from deps import get_current_user, try_get_user, normalize_user_id
 
 api_router_user = APIRouter(prefix="/api/user")
 
