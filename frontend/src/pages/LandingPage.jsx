@@ -45,7 +45,7 @@ const NAV_LINKS = [
   { href: "#faq", label: "FAQ" },
 ];
 
-function Nav() {
+const Nav = React.memo(function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const { user } = useAuth();
   useEffect(() => {
@@ -112,10 +112,10 @@ function Nav() {
       </div>
     </div>
   );
-}
+});
 
 /* Fake live-interview preview widget shown in hero */
-function VoicePreview() {
+const VoicePreview = React.memo(function VoicePreview() {
   const bars = 32;
   const lines = [
     { role: "assistant", text: "Hi, I'm Aria. Let's start with a warm-up — walk me through your latest project." },
@@ -218,7 +218,7 @@ function VoicePreview() {
       </div>
     </div>
   );
-}
+});
 
 const LOGO_ROW = [
   { name: "Google", Icon: Chrome },
@@ -229,7 +229,7 @@ const LOGO_ROW = [
   { name: "Codepen", Icon: Codepen },
 ];
 
-function LogoStrip() {
+const LogoStrip = React.memo(function LogoStrip() {
   const doubled = [...LOGO_ROW, ...LOGO_ROW, ...LOGO_ROW];
   return (
     <div className="relative overflow-hidden py-6">
@@ -248,10 +248,10 @@ function LogoStrip() {
       </div>
     </div>
   );
-}
+});
 
 /* Bento feature card */
-function FeatureCard({ span = "", icon: Icon, title, desc, accent = false, children, testid }) {
+const FeatureCard = React.memo(function FeatureCard({ span = "", icon: Icon, title, desc, accent = false, children, testid }) {
   return (
     <div
       data-testid={testid}
@@ -281,9 +281,9 @@ function FeatureCard({ span = "", icon: Icon, title, desc, accent = false, child
       </div>
     </div>
   );
-}
+});
 
-function ScoreMini({ label, value }) {
+const ScoreMini = React.memo(function ScoreMini({ label, value }) {
   return (
     <div>
       <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-zinc-500">
@@ -298,9 +298,9 @@ function ScoreMini({ label, value }) {
       </div>
     </div>
   );
-}
+});
 
-function StepCard({ n, icon: Icon, title, desc }) {
+const StepCard = React.memo(function StepCard({ n, icon: Icon, title, desc }) {
   return (
     <div className="relative rounded-2xl border border-white/10 bg-[#0a0a0a] p-8">
       <div className="flex items-center justify-between">
@@ -320,7 +320,7 @@ function StepCard({ n, icon: Icon, title, desc }) {
       <p className="mt-2 text-sm text-zinc-400 leading-relaxed">{desc}</p>
     </div>
   );
-}
+});
 
 const TESTIMONIALS = [
   {
@@ -346,7 +346,7 @@ const TESTIMONIALS = [
   },
 ];
 
-function TestimonialCard({ quote, name, role, initials }) {
+const TestimonialCard = React.memo(function TestimonialCard({ quote, name, role, initials }) {
   return (
     <figure className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 h-full flex flex-col">
       <div className="flex items-center gap-1 text-cyan-300">
@@ -368,7 +368,7 @@ function TestimonialCard({ quote, name, role, initials }) {
       </figcaption>
     </figure>
   );
-}
+});
 
 const PRICING = [
   {
@@ -404,7 +404,7 @@ const PRICING = [
   },
 ];
 
-function PricingCard({ tier }) {
+const PricingCard = React.memo(function PricingCard({ tier }) {
   const isHighlight = tier.highlight;
   return (
     <div
@@ -486,7 +486,7 @@ function PricingCard({ tier }) {
       )}
     </div>
   );
-}
+});
 
 const FAQS = [
   {
@@ -519,7 +519,7 @@ const FAQS = [
   },
 ];
 
-function FAQ() {
+const FAQ = React.memo(function FAQ() {
   return (
     <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] overflow-hidden" data-testid="faq-section">
       <Accordion type="multiple" className="w-full">
@@ -543,7 +543,7 @@ function FAQ() {
       </Accordion>
     </div>
   );
-}
+});
 
 /* -------- Main Page -------- */
 export default function LandingPage() {

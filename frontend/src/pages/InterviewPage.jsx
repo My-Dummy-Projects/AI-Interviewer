@@ -17,9 +17,11 @@ function fmtTime(sec) {
   return `${m}:${s}`;
 }
 
+let _cachedConfig = null;
+
 export default function InterviewPage() {
   const navigate = useNavigate();
-  const { setup, transcript, setTranscript, setReport, reset } = useInterview();
+  const { setup, setReport, reset } = useInterview();
   const { getFreshToken, user } = useAuth();
 
   const [status, setStatus] = useState("connecting");
@@ -28,6 +30,7 @@ export default function InterviewPage() {
   const [elapsed, setElapsed] = useState(0);
   const [ended, setEnded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [displayTranscript, setDisplayTranscript] = useState([]);
 
   const vapiRef = useRef(null);
   const startedAtRef = useRef(null);
@@ -36,6 +39,7 @@ export default function InterviewPage() {
   const endedGuardRef = useRef(false);
   const configRef = useRef(null);
   const handleEndRef = useRef(null);
+  const debounceRef = useRef(null);
 
   const durationSec = useMemo(
     () => (setup?.durationMinutes || 10) * 60,
@@ -43,13 +47,24 @@ export default function InterviewPage() {
   );
   const remaining = Math.max(0, durationSec - elapsed);
 
-  const toggleMute = () => {
+  const buildDisplayTranscript = useCallback(() => {
+    const arr = [...transcriptRef.current];
+    if (partialsRef.current.assistant) {
+      arr.push({ role: "assistant", text: partialsRef.current.assistant, partial: true, timestamp: Date.now() });
+    }
+    if (partialsRef.current.user) {
+      arr.push({ role: "user", text: partialsRef.current.user, partial: true, timestamp: Date.now() });
+    }
+    setDisplayTranscript(arr);
+  }, []);
+
+  const toggleMute = useCallback(() => {
     const v = vapiRef.current;
     if (!v) return;
     const next = !isMuted;
     v.setMuted(next);
     setIsMuted(next);
-  };
+  }, [isMuted]);
 
   const handleEnd = useCallback(async () => {
     if (submitting) return;
@@ -148,13 +163,16 @@ export default function InterviewPage() {
       if (!text) return;
       if (msg.transcriptType === "partial") {
         partialsRef.current[role] = text;
-        setTranscript(transcriptRef.current);
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+          if (!destroyed) buildDisplayTranscript();
+        }, 300);
         return;
       }
       partialsRef.current[role] = "";
       const turn = { role, text, timestamp: Date.now() };
       transcriptRef.current = [...transcriptRef.current, turn];
-      setTranscript(transcriptRef.current);
+      buildDisplayTranscript();
     };
     const onError = (e) => {
       if (destroyed) return;
@@ -178,7 +196,10 @@ export default function InterviewPage() {
 
     async function boot() {
       try {
-        const cfg = await api.getConfig();
+        if (!_cachedConfig) {
+          _cachedConfig = await api.getConfig();
+        }
+        const cfg = _cachedConfig;
         if (destroyed) return;
         configRef.current = cfg;
         if (!cfg.ready) {
@@ -221,6 +242,7 @@ export default function InterviewPage() {
     boot();
     return () => {
       destroyed = true;
+      clearTimeout(debounceRef.current);
       if (currentVapi) {
         currentVapi.off("call-start", onCallStart);
         currentVapi.off("call-end", onCallEnd);
@@ -231,7 +253,7 @@ export default function InterviewPage() {
         currentVapi.off("error", onError);
       }
     };
-  }, [setup, setTranscript]);
+  }, [setup, buildDisplayTranscript]);
 
   useEffect(() => {
     return () => {
@@ -250,26 +272,7 @@ export default function InterviewPage() {
   const showUserRing = status === "listening" && !isMuted;
   const showAssistantPulse = status === "speaking";
 
-  const liveTurns = useMemo(() => {
-    const arr = [...transcript];
-    if (partialsRef.current.assistant) {
-      arr.push({
-        role: "assistant",
-        text: partialsRef.current.assistant,
-        partial: true,
-        timestamp: Date.now(),
-      });
-    }
-    if (partialsRef.current.user) {
-      arr.push({
-        role: "user",
-        text: partialsRef.current.user,
-        partial: true,
-        timestamp: Date.now(),
-      });
-    }
-    return arr;
-  }, [transcript]);
+  const liveTurns = displayTranscript;
 
   if (!setup) return <Navigate to="/setup" replace />;
 

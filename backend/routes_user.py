@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import datetime, timezone
 
 from config import supabase
@@ -13,6 +13,12 @@ api_router_user = APIRouter(prefix="/api/user")
 
 
 def fetch_transcript(interview_id: str) -> list:
+    result = supabase.table("interviews").select("transcript").eq("id", interview_id).execute()
+    if result.data and result.data[0].get("transcript"):
+        transcript = result.data[0]["transcript"]
+        if isinstance(transcript, list) and len(transcript) > 0:
+            return transcript
+
     result = supabase.table("transcript_turns").select("*").eq("interview_id", interview_id).order("timestamp").execute()
     return [
         {"role": t["role"], "text": t["text"], "timestamp": t["timestamp"]}
@@ -21,6 +27,12 @@ def fetch_transcript(interview_id: str) -> list:
 
 
 def fetch_report(interview_id: str) -> dict:
+    result = supabase.table("interviews").select("report").eq("id", interview_id).execute()
+    if result.data and result.data[0].get("report"):
+        report = result.data[0]["report"]
+        if isinstance(report, dict) and report.get("skills") is not None:
+            return report
+
     report = {
         "skills": {"technical": 0, "communication": 0, "problemSolving": 0, "confidence": 0},
         "strengths": [],
@@ -200,23 +212,24 @@ async def update_profile(req: UserProfileUpdate, current_user=Depends(get_curren
 
 
 @api_router_user.get("/interviews", response_model=InterviewHistoryResponse)
-async def get_interviews(current_user=Depends(get_current_user)):
+async def get_interviews(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    current_user=Depends(get_current_user),
+):
     user_id = current_user.id
     email = current_user.email or ""
     candidate_ids = get_user_id_candidates(user_id, email)
 
-    docs = []
-    for candidate in candidate_ids:
-        result = supabase.table("interviews").select("*").eq("user_id", candidate).order("created_at", desc=True).limit(50).execute()
-        docs.extend(result.data or [])
+    if not candidate_ids:
+        return InterviewHistoryResponse(interviews=[], total=0, page=1, page_size=page_size, total_pages=0)
 
-    seen_ids = set()
-    unique_docs = []
-    for doc in docs:
-        doc_id = doc.get("id")
-        if doc_id and doc_id not in seen_ids:
-            seen_ids.add(doc_id)
-            unique_docs.append(doc)
+    start = (page - 1) * page_size
+    end = start + page_size - 1
+
+    result = supabase.table("interviews").select("*", count="exact").in_("user_id", candidate_ids).order("created_at", desc=True).range(start, end).execute()
+    docs = result.data or []
+    total = result.count if hasattr(result, "count") else len(docs)
 
     interviews = [
         InterviewSummary(
@@ -227,9 +240,10 @@ async def get_interviews(current_user=Depends(get_current_user)):
             overallScore=int(doc.get("overall_score") or doc.get("overallScore") or 0),
             completedAt=str(doc.get("created_at") or doc.get("createdAt") or ""),
         )
-        for doc in unique_docs
+        for doc in docs
     ]
-    return InterviewHistoryResponse(interviews=interviews, total=len(interviews))
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    return InterviewHistoryResponse(interviews=interviews, total=total, page=page, page_size=page_size, total_pages=total_pages)
 
 
 @api_router_user.get("/interviews/{interview_id}", response_model=InterviewDetail)
@@ -295,20 +309,11 @@ async def get_dashboard_stats(current_user=Depends(get_current_user)):
     email = current_user.email or ""
     candidate_ids = get_user_id_candidates(user_id, email)
 
-    interviews = []
-    for candidate in candidate_ids:
-        result = supabase.table("interviews").select("*").eq("user_id", candidate).order("created_at", desc=True).limit(50).execute()
-        interviews.extend(result.data or [])
-
-    seen_ids = set()
-    unique_interviews = []
-    for doc in interviews:
-        doc_id = doc.get("id")
-        if doc_id and doc_id not in seen_ids:
-            seen_ids.add(doc_id)
-            unique_interviews.append(doc)
-
-    interviews = unique_interviews
+    if not candidate_ids:
+        interviews = []
+    else:
+        result = supabase.table("interviews").select("*").in_("user_id", candidate_ids).order("created_at", desc=True).limit(50).execute()
+        interviews = result.data or []
 
     if not interviews:
         return DashboardStats(

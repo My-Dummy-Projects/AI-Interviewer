@@ -121,6 +121,9 @@ class InterviewSummary(BaseModel):
 class InterviewHistoryResponse(BaseModel):
     interviews: List[InterviewSummary]
     total: int
+    page: int = 1
+    page_size: int = 50
+    total_pages: int = 1
 
 
 class InterviewDetail(BaseModel):

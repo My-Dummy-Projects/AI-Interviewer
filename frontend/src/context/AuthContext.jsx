@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useUser, useAuth as useClerkAuth, useSignIn, useSignUp } from "@clerk/clerk-react";
-import api, { setBearerToken } from "@/lib/api";
+import api, { setBearerToken, setTokenRefresher } from "@/lib/api";
 
 const AuthContext = createContext(null);
 
@@ -52,14 +52,9 @@ export function AuthProvider({ children }) {
 
     init();
 
-    const interval = setInterval(async () => {
-      try {
-        const token = await getToken();
-        setBearerToken(token);
-      } catch { }
-    }, 10 * 60 * 1000);
+    setTokenRefresher(() => getToken);
 
-    return () => clearInterval(interval);
+    return () => setTokenRefresher(null);
   }, [isLoaded, isSignedIn, clerkUser, getToken]);
 
   const signup = useCallback(

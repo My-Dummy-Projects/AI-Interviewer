@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -98,7 +98,7 @@ const LEVELS = ["All Levels", "Intern", "Junior", "Mid-level", "Senior", "Staff/
 /* ─────────────────────────── charts ─────────────────────────── */
 
 /** Smooth SVG area chart with gradient fill + hover tooltip */
-function ScoreTrendChart({ scores }) {
+const ScoreTrendChart = React.memo(function ScoreTrendChart({ scores }) {
   const [hover, setHover] = useState(null);
   const W = 560;
   const H = 180;
@@ -256,10 +256,10 @@ function ScoreTrendChart({ scores }) {
       )}
     </div>
   );
-}
+});
 
 /** SVG radar chart for skills (4 axes) */
-function SkillRadar({ skills }) {
+const SkillRadar = React.memo(function SkillRadar({ skills }) {
   const W = 300;
   const H = 240;
   const cx = W / 2;
@@ -385,10 +385,10 @@ function SkillRadar({ skills }) {
       </svg>
     </div>
   );
-}
+});
 
 /** Circular progress ring (for weekly goal) */
-function ProgressRing({ value, max, size = 128, stroke = 10, children }) {
+const ProgressRing = React.memo(function ProgressRing({ value, max, size = 128, stroke = 10, children }) {
   const radius = (size - stroke) / 2;
   const c = 2 * Math.PI * radius;
   const progress = max === 0 ? 0 : Math.min(value / max, 1);
@@ -428,7 +428,7 @@ function ProgressRing({ value, max, size = 128, stroke = 10, children }) {
       <div className="absolute inset-0 flex items-center justify-center">{children}</div>
     </div>
   );
-}
+});
 
 /* ─────────────────────────── page ─────────────────────────── */
 
@@ -471,7 +471,7 @@ export default function DashboardPage() {
     }
   }, [user, authLoading, navigate]);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const data = await api.getProfile();
       setProfile(data);
@@ -480,18 +480,18 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       const data = await api.getDashboardStats();
       setStats(data);
     } catch {
       /* stats may not exist for new users */
     }
-  };
+  }, []);
 
-  const loadInterviews = async () => {
+  const loadInterviews = useCallback(async () => {
     setInterviewsLoading(true);
     try {
       const data = await api.getInterviews();
@@ -501,9 +501,9 @@ export default function DashboardPage() {
     } finally {
       setInterviewsLoading(false);
     }
-  };
+  }, []);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     setSigningOut(true);
     try {
       await signout();
@@ -512,9 +512,9 @@ export default function DashboardPage() {
     } catch {
       setSigningOut(false);
     }
-  };
+  }, [signout, navigate]);
 
-  const persistGoal = (n) => {
+  const persistGoal = useCallback((n) => {
     const clamped = Math.max(1, Math.min(20, n));
     setWeeklyGoal(clamped);
     try {
@@ -522,7 +522,7 @@ export default function DashboardPage() {
     } catch {
       /* ignore */
     }
-  };
+  }, []);
 
   const hasData = stats && stats.totalInterviews > 0;
 

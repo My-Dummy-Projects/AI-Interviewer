@@ -1,4 +1,4 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
@@ -6,17 +6,19 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toaster } from "sonner";
 import { InterviewProvider } from "@/context/InterviewContext";
 import { AuthProvider } from "@/context/AuthContext";
-import LandingPage from "@/pages/LandingPage";
-import SetupPage from "@/pages/SetupPage";
-import InterviewPage from "@/pages/InterviewPage";
-import ReportPage from "@/pages/ReportPage";
-import SignInPage from "@/pages/SignInPage";
-import SignUpPage from "@/pages/SignUpPage";
-import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
-import ResetPasswordPage from "@/pages/ResetPasswordPage";
-import ProfilePage from "@/pages/ProfilePage";
-import DashboardPage from "@/pages/DashboardPage";
-import FeedbackPage from "@/pages/FeedbackPage";
+import { LoadingScreen } from "@/components/LoadingScreen";
+
+const LandingPage = lazy(() => import("@/pages/LandingPage"));
+const SetupPage = lazy(() => import("@/pages/SetupPage"));
+const InterviewPage = lazy(() => import("@/pages/InterviewPage"));
+const ReportPage = lazy(() => import("@/pages/ReportPage"));
+const SignInPage = lazy(() => import("@/pages/SignInPage"));
+const SignUpPage = lazy(() => import("@/pages/SignUpPage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
+const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
+const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
+const FeedbackPage = lazy(() => import("@/pages/FeedbackPage"));
 
 const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || "";
 
@@ -34,24 +36,23 @@ function App() {
           <InterviewProvider>
             <BrowserRouter>
               <ErrorBoundary>
-                <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/setup" element={<SetupPage />} />
-                  <Route path="/interview" element={<InterviewPage />} />
-                  <Route path="/report" element={<ReportPage />} />
-                  <Route path="/report/:id" element={<ReportPage />} />
-                  <Route path="/signin" element={<SignInPage />} />
-                  <Route path="/signup" element={<SignUpPage />} />
-                  <Route
-                    path="/forgot-password"
-                    element={<ForgotPasswordPage />}
-                  />
-                  <Route path="/reset-password" element={<ResetPasswordPage />} />
-                  <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/feedback" element={<FeedbackPage />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
+                <Suspense fallback={<LoadingScreen message="Loading..." />}>
+                  <Routes>
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/setup" element={<SetupPage />} />
+                    <Route path="/interview" element={<InterviewPage />} />
+                    <Route path="/report" element={<ReportPage />} />
+                    <Route path="/report/:id" element={<ReportPage />} />
+                    <Route path="/signin" element={<SignInPage />} />
+                    <Route path="/signup" element={<SignUpPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/feedback" element={<FeedbackPage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Suspense>
               </ErrorBoundary>
             </BrowserRouter>
             <Toaster

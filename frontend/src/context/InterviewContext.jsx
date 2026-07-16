@@ -1,21 +1,27 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef } from "react";
 
 const InterviewContext = createContext(null);
 
 export function InterviewProvider({ children }) {
-  const [setup, setSetup] = useState(null); // { jobRole, experienceLevel, durationMinutes }
-  const [transcript, setTranscript] = useState([]); // [{ role, text, timestamp }]
+  const [setup, setSetup] = useState(null);
   const [report, setReport] = useState(null);
+  const transcriptRef = useRef([]);
+
+  const setTranscript = useCallback((fn) => {
+    transcriptRef.current = typeof fn === "function" ? fn(transcriptRef.current) : fn;
+  }, []);
+
+  const getTranscript = useCallback(() => transcriptRef.current, []);
 
   const reset = useCallback(() => {
     setSetup(null);
-    setTranscript([]);
     setReport(null);
+    transcriptRef.current = [];
   }, []);
 
   return (
     <InterviewContext.Provider
-      value={{ setup, setSetup, transcript, setTranscript, report, setReport, reset }}
+      value={{ setup, setSetup, report, setReport, reset, setTranscript, getTranscript }}
     >
       {children}
     </InterviewContext.Provider>

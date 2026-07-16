@@ -4,9 +4,14 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
 const API = `${BACKEND_URL}/api`;
 
 let _bearerToken = null;
+let _tokenRefresher = null;
 
 export function setBearerToken(token) {
   _bearerToken = token;
+}
+
+export function setTokenRefresher(fn) {
+  _tokenRefresher = fn;
 }
 
 function authHeaders() {
@@ -15,6 +20,24 @@ function authHeaders() {
   }
   return {};
 }
+
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401 && _tokenRefresher && !error.config._retry) {
+      error.config._retry = true;
+      try {
+        const token = await _tokenRefresher();
+        if (token) {
+          _bearerToken = token;
+          error.config.headers.Authorization = `Bearer ${token}`;
+          return axios(error.config);
+        }
+      } catch {}
+    }
+    return Promise.reject(error);
+  }
+);
 
 const api = {
   // Profile

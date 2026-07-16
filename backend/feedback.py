@@ -3,7 +3,7 @@ import re
 import traceback
 from types import SimpleNamespace
 from datetime import datetime, timezone
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 from config import logger, OPENROUTER_API_KEY, OPENROUTER_MODEL, supabase
 from models import FeedbackRequest, FeedbackReport, SkillScores, QuestionEvaluation
@@ -63,6 +63,8 @@ def build_interview_insert_payload(req: FeedbackRequest, report: FeedbackReport,
         "overall_score": report.overallScore,
         "final_recommendation": report.finalRecommendation,
         "summary": report.summary,
+        "report": report.model_dump(),
+        "transcript": [t.model_dump() for t in req.transcript],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -263,11 +265,11 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
     else:
         prompt = build_feedback_prompt(req)
         try:
-            oai_client = OpenAI(
+            oai_client = AsyncOpenAI(
                 api_key=OPENROUTER_API_KEY,
                 base_url="https://openrouter.ai/api/v1",
             )
-            completion = oai_client.chat.completions.create(
+            completion = await oai_client.chat.completions.create(
                 model=OPENROUTER_MODEL,
                 messages=[
                     {
@@ -297,10 +299,25 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
             logger.info(f"Saving interview for user {current_user.id}")
             ensure_user_profile(current_user)
             payload = build_interview_insert_payload(req, report, current_user)
-            logger.info(f"Interview payload built: {json.dumps({k: v for k, v in payload.items() if k != 'transcript'})}")
+            jsonb_report = payload.pop("report", None)
+            jsonb_transcript = payload.pop("transcript", None)
+            logger.info(f"Interview payload built: {json.dumps(payload)}")
             result = supabase.table("interviews").insert(payload).execute()
             if result.data:
                 interview_id = result.data[0]["id"]
+
+                # Attempt to store JSONB report/transcript separately (columns may not exist in all deployments)
+                if jsonb_report is not None or jsonb_transcript is not None:
+                    try:
+                        update_data = {}
+                        if jsonb_report is not None:
+                            update_data["report"] = jsonb_report
+                        if jsonb_transcript is not None:
+                            update_data["transcript"] = jsonb_transcript
+                        supabase.table("interviews").update(update_data).eq("id", interview_id).execute()
+                    except Exception as jsonb_err:
+                        logger.warning(f"Could not set JSONB columns (may not exist in schema): {jsonb_err}")
+
                 logger.info(f"Interview {interview_id} saved, now saving normalized data")
                 save_normalized_data(req, report, interview_id)
                 logger.info(f"Interview {interview_id} fully saved with normalized data")
