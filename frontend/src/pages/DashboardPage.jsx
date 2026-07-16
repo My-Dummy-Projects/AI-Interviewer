@@ -595,7 +595,7 @@ export default function DashboardPage() {
       <Navbar
         left={
           <>
-            <Link to="/" data-testid="dashboard-nav-logo" className="shrink-0">
+            <Link to="/dashboard" data-testid="dashboard-nav-logo" className="shrink-0">
               <VoxaLogo size={22} />
             </Link>
             <div className="hidden md:block h-5 w-px bg-white" />

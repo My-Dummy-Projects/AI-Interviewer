@@ -62,6 +62,16 @@ export default function ReportPage() {
   const isHistorical = Boolean(id);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      window.scrollTo(0, 0);
+    }
+  }, [loading]);
+
+  useEffect(() => {
     if (!id) return;
     if (location.state?.interview) {
       setInterviewData(location.state.interview);
@@ -105,7 +115,7 @@ export default function ReportPage() {
     return (
       <div className="relative min-h-screen bg-[#050505] text-white overflow-x-hidden">
         <div className="ambient-glow" />
-        <Navbar left={<><Link to="/"><VoxaLogo size={26} /></Link></>} right={null} />
+        <Navbar left={<><Link to="/dashboard"><VoxaLogo size={26} /></Link></>} right={null} />
         <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
           <p className="text-lg font-semibold text-white">We couldn&apos;t load this report right now.</p>
           <p className="mt-2 text-sm text-zinc-500">Please try again from the dashboard or open it in a new tab.</p>
@@ -136,7 +146,7 @@ export default function ReportPage() {
       <Navbar
         left={
           <>
-            <Link to="/">
+            <Link to="/dashboard">
               <VoxaLogo size={26} />
             </Link>
             <div className="hidden md:block h-5 w-px bg-white/10" />

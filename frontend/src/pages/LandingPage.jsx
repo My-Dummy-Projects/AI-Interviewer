@@ -62,7 +62,7 @@ const Nav = React.memo(function Nav() {
       data-testid="landing-nav"
     >
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/" data-testid="landing-nav-logo">
+        <Link to={user ? "/dashboard" : "/"} data-testid="landing-nav-logo">
           <VoxaLogo size={28} />
         </Link>
         <nav className="hidden md:flex items-center gap-8">
