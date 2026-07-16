@@ -29,6 +29,9 @@ import {
   Play,
   Zap,
   Trophy,
+  CreditCard,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -445,6 +448,7 @@ export default function DashboardPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [signingOut, setSigningOut] = useState(false);
+  const [subscription, setSubscription] = useState(null);
 
   // Weekly goal (persisted in localStorage)
   const [weeklyGoal, setWeeklyGoal] = useState(DEFAULT_GOAL);
@@ -468,6 +472,7 @@ export default function DashboardPage() {
       loadProfile();
       loadStats();
       loadInterviews();
+      loadSubscription();
     }
   }, [user, authLoading, navigate]);
 
@@ -500,6 +505,15 @@ export default function DashboardPage() {
       toast.error("Failed to load interview history");
     } finally {
       setInterviewsLoading(false);
+    }
+  }, []);
+
+  const loadSubscription = useCallback(async () => {
+    try {
+      const data = await api.getSubscription();
+      setSubscription(data);
+    } catch {
+      /* non-critical */
     }
   }, []);
 
@@ -671,15 +685,26 @@ export default function DashboardPage() {
               </p>
 
               <div className="mt-6 flex flex-wrap items-center gap-3">
-                <Link to="/setup">
+                {subscription && subscription.interviewsRemaining <= 0 ? (
                   <Button
-                    data-testid="dashboard-start-cta"
-                    className="rounded-full bg-white hover:bg-zinc-200 text-black h-11 px-6 text-sm font-semibold shadow-lg shadow-white/5 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    disabled
+                    className="rounded-full bg-white/10 text-zinc-500 h-11 px-6 text-sm font-semibold cursor-not-allowed"
+                    title="You have no remaining interviews. Upgrade to continue."
                   >
-                    <Play className="mr-2 h-4 w-4 fill-black" strokeWidth={0} />
-                    Start new interview
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    Upgrade to continue
                   </Button>
-                </Link>
+                ) : (
+                  <Link to="/setup">
+                    <Button
+                      data-testid="dashboard-start-cta"
+                      className="rounded-full bg-white hover:bg-zinc-200 text-black h-11 px-6 text-sm font-semibold shadow-lg shadow-white/5 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                      <Play className="mr-2 h-4 w-4 fill-black" strokeWidth={0} />
+                      Start new interview
+                    </Button>
+                  </Link>
+                )}
                 {hasData && (
                   <div className="flex items-center gap-4 text-[11px] text-zinc-500 font-mono ml-1">
                     <span className="flex items-center gap-1.5">
@@ -803,28 +828,64 @@ export default function DashboardPage() {
           </motion.div>
         </section>
 
-        <section className="mb-8">
-          <div className="rounded-2xl border border-white/[0.06] bg-[#0a0a0a] p-6 sm:p-7">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-[10px] font-mono tracking-[0.25em] uppercase text-cyan-300/80">
-                  Feedback
-                </p>
-                <h2 className="mt-3 text-xl font-semibold text-white" style={{ fontFamily: "var(--font-heading)" }}>
-                  Help us improve the tool
-                </h2>
-                <p className="mt-2 text-sm text-zinc-400 max-w-2xl leading-relaxed">
-                  Share your thoughts on the app experience and suggest enhancements for future updates.
-                </p>
+        {/* ─── subscription plan ─── */}
+        {subscription && (
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.12 }}
+            className="mb-4 sm:mb-5"
+          >
+            <div className="rounded-2xl border border-white/[0.06] bg-[#0a0a0a] p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-400/20 to-emerald-400/20 border border-cyan-400/20 flex items-center justify-center shrink-0">
+                    <CreditCard className="h-5 w-5 text-cyan-300" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-mono tracking-[0.25em] uppercase text-zinc-500">Plan</p>
+                    <h3 className="mt-0.5 text-base font-semibold text-white capitalize">{subscription.plan}</h3>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                  <div>
+                    <span className="text-zinc-500 text-xs">Used</span>
+                    <p className="text-white font-semibold mt-0.5">
+                      {subscription.interviewsUsed}
+                      <span className="text-zinc-500 font-normal"> / {subscription.interviewsAllowed}</span>
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 text-xs">Remaining</span>
+                    <p className={`font-semibold mt-0.5 ${subscription.interviewsRemaining <= 1 ? "text-red-400" : "text-emerald-400"}`}>
+                      {subscription.interviewsRemaining}
+                    </p>
+                  </div>
+                  {subscription.interviewsRemaining <= 2 && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-xs text-amber-300">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      {subscription.interviewsRemaining === 0 ? "No interviews left" : "Low on interviews"}
+                    </div>
+                  )}
+                </div>
               </div>
-              <Link to="/feedback">
-                <Button className="h-11 rounded-full bg-cyan-400 hover:bg-cyan-300 text-black px-6 text-sm font-semibold">
-                  Submit feedback
-                </Button>
-              </Link>
+              {subscription.plan === "free" && (
+                <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+                  <p className="text-xs text-zinc-500">
+                    <ShieldCheck className="h-3.5 w-3.5 inline mr-1 text-cyan-400" />
+                    Upgrade to unlock more interviews and features.
+                  </p>
+                  <Button className="h-9 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-4">
+                    Upgrade
+                  </Button>
+                </div>
+              )}
             </div>
-          </div>
-        </section>
+          </motion.section>
+        )}
+
+        {/* ─── stats grid ─── */}
 
         {/* ─── empty state ─── */}
         {/* {!hasData && !loading && <EmptyState />} */}
@@ -1206,6 +1267,23 @@ export default function DashboardPage() {
               <p className="text-sm text-zinc-500">No history yet</p>
             </div>
           ) : null}
+        </section>
+
+        {/* ─── feedback ─── */}
+        <section className="mt-8 mb-6">
+          <div className="rounded-2xl border border-white/[0.06] bg-[#0a0a0a] p-5 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-mono tracking-[0.25em] uppercase text-cyan-300/80">Feedback</p>
+                <p className="mt-1.5 text-sm text-zinc-400">Help us improve the tool — share your thoughts on the app.</p>
+              </div>
+              <Link to="/feedback">
+                <Button className="h-9 rounded-full bg-cyan-400 hover:bg-cyan-300 text-black px-5 text-xs font-semibold shrink-0">
+                  Submit feedback
+                </Button>
+              </Link>
+            </div>
+          </div>
         </section>
 
         <div className="h-12" />

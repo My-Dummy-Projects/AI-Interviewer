@@ -3,10 +3,11 @@ import re
 import traceback
 from types import SimpleNamespace
 from datetime import datetime, timezone
+from fastapi import HTTPException
 from openai import AsyncOpenAI
 
 from config import logger, OPENROUTER_API_KEY, OPENROUTER_MODEL, supabase
-from models import FeedbackRequest, FeedbackReport, SkillScores, QuestionEvaluation
+from models import FeedbackRequest, FeedbackReport, SkillScores, QuestionEvaluation, PLAN_LIMITS
 
 
 def ensure_user_profile(current_user) -> None:
@@ -292,6 +293,35 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
             logger.exception("Feedback generation failed")
             report = fallback_report(req, f"LLM error: {type(e).__name__}: {str(e)[:200]}")
 
+    if current_user:
+        try:
+            sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", current_user.id).execute()
+            sub = sub_result.data[0] if sub_result.data else None
+            if sub is None:
+                plan_cfg = PLAN_LIMITS.get("free", {"interviews_allowed": 5})
+                supabase.table("user_subscriptions").insert({
+                    "user_id": current_user.id,
+                    "plan": "free",
+                    "interviews_allowed": plan_cfg["interviews_allowed"],
+                    "interviews_used": 0,
+                    "status": "active",
+                }).execute()
+                sub = {"interviews_allowed": plan_cfg["interviews_allowed"], "interviews_used": 0}
+
+            allowed = sub.get("interviews_allowed", 5)
+            used = sub.get("interviews_used", 0)
+            remaining = allowed - used
+            if remaining <= 0:
+                logger.warning(f"User {current_user.id} has no remaining interviews (used {used}/{allowed})")
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"You have used all {allowed} interviews on your {sub.get('plan', 'free')} plan. Upgrade to continue.",
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to check subscription for {current_user.id}: {e}")
+
     current_user = _resolve_user(current_user, req)
 
     if current_user:
@@ -320,6 +350,19 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
 
                 logger.info(f"Interview {interview_id} saved, now saving normalized data")
                 save_normalized_data(req, report, interview_id)
+
+                # Increment interview usage count
+                try:
+                    current_sub = supabase.table("user_subscriptions").select("interviews_used").eq("user_id", current_user.id).execute()
+                    current_used = current_sub.data[0]["interviews_used"] if current_sub.data else 0
+                    supabase.table("user_subscriptions").update({
+                        "interviews_used": current_used + 1,
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                    }).eq("user_id", current_user.id).execute()
+                    logger.info(f"Incremented interviews_used for user {current_user.id} to {current_used + 1}")
+                except Exception as usage_err:
+                    logger.warning(f"Failed to increment interview usage for {current_user.id}: {usage_err}")
+
                 logger.info(f"Interview {interview_id} fully saved with normalized data")
             else:
                 logger.error(f"Failed to save interview: no data returned. Response: {result}")

@@ -6,6 +6,7 @@ from models import (
     UserProfileUpdate, UserProfileResponse,
     InterviewSummary, InterviewHistoryResponse, InterviewDetail,
     DashboardStats, FeedbackEntryRequest, FeedbackEntryResponse,
+    SubscriptionResponse, SubscriptionUsageResponse, PLAN_LIMITS,
 )
 from deps import get_current_user, try_get_user, normalize_user_id
 
@@ -300,6 +301,53 @@ async def submit_tool_feedback(req: FeedbackEntryRequest, current_user=Depends(g
         rating=req.rating,
         category=req.category,
         createdAt=created_at,
+    )
+
+
+def get_or_create_subscription(user_id: str) -> dict:
+    result = supabase.table("user_subscriptions").select("*").eq("user_id", user_id).execute()
+    if result.data:
+        return result.data[0]
+
+    plan_config = PLAN_LIMITS.get("free", {"interviews_allowed": 5})
+    supabase.table("user_subscriptions").insert({
+        "user_id": user_id,
+        "plan": "free",
+        "interviews_allowed": plan_config["interviews_allowed"],
+        "interviews_used": 0,
+        "status": "active",
+    }).execute()
+    result = supabase.table("user_subscriptions").select("*").eq("user_id", user_id).execute()
+    return result.data[0] if result.data else {}
+
+
+@api_router_user.get("/subscription", response_model=SubscriptionResponse)
+async def get_subscription(current_user=Depends(get_current_user)):
+    sub = get_or_create_subscription(current_user.id)
+    allowed = sub.get("interviews_allowed", 5)
+    used = sub.get("interviews_used", 0)
+    return SubscriptionResponse(
+        plan=sub.get("plan", "free"),
+        interviewsAllowed=allowed,
+        interviewsUsed=used,
+        interviewsRemaining=max(0, allowed - used),
+        status=sub.get("status", "active"),
+        currentPeriodStart=str(sub.get("current_period_start") or ""),
+        currentPeriodEnd=str(sub.get("current_period_end") or ""),
+    )
+
+
+@api_router_user.get("/subscription/usage", response_model=SubscriptionUsageResponse)
+async def get_subscription_usage(current_user=Depends(get_current_user)):
+    sub = get_or_create_subscription(current_user.id)
+    allowed = sub.get("interviews_allowed", 5)
+    used = sub.get("interviews_used", 0)
+    remaining = max(0, allowed - used)
+    return SubscriptionUsageResponse(
+        interviewsAllowed=allowed,
+        interviewsUsed=used,
+        interviewsRemaining=remaining,
+        canStartInterview=remaining > 0,
     )
 
 

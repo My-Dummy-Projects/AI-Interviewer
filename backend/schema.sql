@@ -124,6 +124,24 @@ ALTER TABLE interviews ADD COLUMN IF NOT EXISTS summary TEXT NOT NULL DEFAULT ''
 ALTER TABLE interviews ADD COLUMN IF NOT EXISTS transcript JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE interviews ADD COLUMN IF NOT EXISTS report JSONB NOT NULL DEFAULT '{}';
 
+-- ─── Subscriptions ─────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS user_subscriptions (
+    id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id               UUID        NOT NULL UNIQUE REFERENCES user_profiles (user_id) ON DELETE CASCADE,
+    plan                  TEXT        NOT NULL DEFAULT 'free',
+    interviews_allowed    INT         NOT NULL DEFAULT 5,
+    interviews_used       INT         NOT NULL DEFAULT 0,
+    status                TEXT        NOT NULL DEFAULT 'active',
+    current_period_start  TIMESTAMPTZ,
+    current_period_end    TIMESTAMPTZ,
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_user_subscriptions_user_id ON user_subscriptions (user_id);
+CREATE INDEX idx_user_subscriptions_plan ON user_subscriptions (plan);
+
 -- ─── Updated-at trigger ───────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -139,9 +157,15 @@ CREATE TRIGGER trg_user_profiles_updated_at
     BEFORE UPDATE ON user_profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS trg_user_subscriptions_updated_at ON user_subscriptions;
+CREATE TRIGGER trg_user_subscriptions_updated_at
+    BEFORE UPDATE ON user_subscriptions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- ─── Row-Level Security (Supabase) ────────────────────────────
 
 ALTER TABLE user_profiles         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_subscriptions    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feedback_entries      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE interviews            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transcript_turns      ENABLE ROW LEVEL SECURITY;
@@ -155,6 +179,10 @@ ALTER TABLE learning_suggestions  ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY user_profiles_owner_policy
     ON user_profiles
+    USING (user_id = auth.uid());
+
+CREATE POLICY user_subscriptions_owner_policy
+    ON user_subscriptions
     USING (user_id = auth.uid());
 
 CREATE POLICY feedback_entries_owner_policy

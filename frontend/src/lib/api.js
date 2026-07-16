@@ -97,6 +97,14 @@ const api = {
     });
     return data;
   },
+
+  // Subscription
+  async getSubscription() {
+    const { data } = await axios.get(`${API}/user/subscription`, {
+      headers: authHeaders(),
+    });
+    return data;
+  },
 };
 
 export default api;

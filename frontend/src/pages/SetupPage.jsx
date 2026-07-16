@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
-import { ArrowRight, ArrowLeft, Mic, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowLeft, Mic, ShieldCheck, Sparkles, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,8 @@ import { useInterview } from "@/context/InterviewContext";
 import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
+import api from "@/lib/api";
+import { toast } from "sonner";
 
 const EXPERIENCE_LEVELS = [
   { value: "Intern", label: "Intern" },
@@ -39,13 +41,26 @@ export default function SetupPage() {
   const [jobRole, setJobRole] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
   const [duration, setDuration] = useState("");
+  const [subscription, setSubscription] = useState(null);
+  const [subLoading, setSubLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      api.getSubscription().then(setSubscription).catch(() => {}).finally(() => setSubLoading(false));
+    } else {
+      setSubLoading(false);
+    }
+  }, [user]);
 
   if (!loading && !user) return <Navigate to="/signin" replace />;
 
-  const canStart = jobRole.trim().length > 1 && experienceLevel && duration;
+  const remaining = subscription?.interviewsRemaining ?? 0;
+  const overLimit = !subLoading && subscription && remaining <= 0;
+  const canStart = !overLimit && jobRole.trim().length > 1 && experienceLevel && duration;
 
   const handleStart = () => {
     if (!canStart) return;
+    if (overLimit) return;
     reset();
     setSetup({
       jobRole: jobRole.trim(),
@@ -167,15 +182,30 @@ export default function SetupPage() {
                   <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
                   <span>Powered by Vapi voice + LLM scoring</span>
                 </div>
-                <Button
-                  data-testid="start-interview-button"
-                  disabled={!canStart}
-                  onClick={handleStart}
-                  className="h-12 rounded-full bg-white hover:bg-zinc-200 text-black px-6 text-sm font-semibold tracking-wide disabled:bg-white/10 disabled:text-zinc-600 group"
-                >
-                  START INTERVIEW
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
+                {subLoading ? (
+                  <Button disabled className="h-12 rounded-full bg-white/10 text-zinc-600 px-6 text-sm font-semibold">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Checking...
+                  </Button>
+                ) : overLimit ? (
+                  <Button
+                    disabled
+                    className="h-12 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 px-6 text-sm font-semibold cursor-not-allowed"
+                  >
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    Upgrade to start
+                  </Button>
+                ) : (
+                  <Button
+                    data-testid="start-interview-button"
+                    disabled={!canStart}
+                    onClick={handleStart}
+                    className="h-12 rounded-full bg-white hover:bg-zinc-200 text-black px-6 text-sm font-semibold tracking-wide disabled:bg-white/10 disabled:text-zinc-600 group"
+                  >
+                    START INTERVIEW
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                )}
               </div>
             </div>
 

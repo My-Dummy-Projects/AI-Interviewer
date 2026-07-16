@@ -58,11 +58,13 @@ export default function ReportPage() {
   const { report: ctxReport, setup: ctxSetup, reset } = useInterview();
   const [loading, setLoading] = useState(() => Boolean(id) && !location.state?.interview);
   const [interviewData, setInterviewData] = useState(location.state?.interview || null);
+  const [subscription, setSubscription] = useState(null);
 
   const isHistorical = Boolean(id);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    api.getSubscription().then(setSubscription).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -346,29 +348,47 @@ export default function ReportPage() {
             </div>
           </section>
 
-          {/* Learning suggestions */}
-          <section className="rounded-2xl border border-cyan-400/30 bg-gradient-to-b from-cyan-400/[0.05] to-transparent p-6 md:p-8">
-            <div className="flex items-center gap-2 mb-4">
-              <GraduationCap className="h-4 w-4 text-cyan-300" />
-              <div className="label-overline text-cyan-300">Personalized Learning Plan</div>
-            </div>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {suggestions.map((s, i) => (
-                <li
-                  key={i}
-                  className="flex gap-3 text-sm text-zinc-200 border-l-2 border-cyan-400/40 pl-3"
-                >
-                  <span className="font-mono text-xs text-zinc-500 shrink-0">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span>{s}</span>
-                </li>
-              ))}
-              {suggestions.length === 0 && (
-                <li className="text-sm text-zinc-500">No learning suggestions generated.</li>
-              )}
-            </ul>
-          </section>
+          {/* Learning suggestions — paid only */}
+          {subscription && subscription.plan !== "free" ? (
+            <section className="rounded-2xl border border-cyan-400/30 bg-gradient-to-b from-cyan-400/[0.05] to-transparent p-6 md:p-8">
+              <div className="flex items-center gap-2 mb-4">
+                <GraduationCap className="h-4 w-4 text-cyan-300" />
+                <div className="label-overline text-cyan-300">Personalized Learning Plan</div>
+              </div>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {suggestions.map((s, i) => (
+                  <li
+                    key={i}
+                    className="flex gap-3 text-sm text-zinc-200 border-l-2 border-cyan-400/40 pl-3"
+                  >
+                    <span className="font-mono text-xs text-zinc-500 shrink-0">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+                {suggestions.length === 0 && (
+                  <li className="text-sm text-zinc-500">No learning suggestions generated.</li>
+                )}
+              </ul>
+            </section>
+          ) : !subscription ? null : (
+            <section className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 md:p-8">
+              <div className="flex items-center gap-2 mb-4">
+                <GraduationCap className="h-4 w-4 text-zinc-500" />
+                <div className="label-overline text-zinc-500">Personalized Learning Plan</div>
+              </div>
+              <p className="text-sm text-zinc-500">
+                Upgrade to a paid plan to unlock your personalized learning plan with actionable
+                next steps, topic recommendations, and practice drills tailored to your performance.
+              </p>
+              <Link to="/dashboard">
+                <Button className="mt-4 h-10 rounded-full bg-white hover:bg-zinc-200 text-black px-5 text-sm font-semibold">
+                  View plans
+                </Button>
+              </Link>
+            </section>
+          )}
 
           <div className="flex items-center justify-between pt-4 pb-10">
             <Button

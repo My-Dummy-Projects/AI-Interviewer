@@ -146,3 +146,34 @@ class DashboardStats(BaseModel):
     recentScores: List[int]
     scoreDistribution: dict
     skillAverages: dict
+
+
+PLAN_LIMITS = {
+    "free": {"interviews_allowed": 2, "price_monthly": 0},
+    "starter": {"interviews_allowed": 20, "price_monthly": 19},
+    "pro": {"interviews_allowed": 100, "price_monthly": 49},
+}
+
+
+class PlanInfo(BaseModel):
+    id: str
+    name: str
+    interviewsAllowed: int
+    priceMonthly: int
+
+
+class SubscriptionResponse(BaseModel):
+    plan: str
+    interviewsAllowed: int
+    interviewsUsed: int
+    interviewsRemaining: int
+    status: str
+    currentPeriodStart: Optional[str] = None
+    currentPeriodEnd: Optional[str] = None
+
+
+class SubscriptionUsageResponse(BaseModel):
+    interviewsAllowed: int
+    interviewsUsed: int
+    interviewsRemaining: int
+    canStartInterview: bool
