@@ -11,6 +11,7 @@ import {
 import { useInterview } from "@/context/InterviewContext";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
+import { SkeletonReport } from "@/components/LoadingScreen";
 import api from "@/lib/api";
 
 const RECS = {
@@ -98,15 +99,7 @@ export default function ReportPage() {
 
   if (!isHistorical && !ctxReport) return <Navigate to="/" replace />;
   if (isHistorical && loading) {
-    return (
-      <div className="relative min-h-screen bg-[#050505] text-white overflow-x-hidden">
-        <div className="ambient-glow" />
-        <Navbar left={<><Link to="/"><VoxaLogo size={26} /></Link></>} right={null} />
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
-        </div>
-      </div>
-    );
+    return <SkeletonReport message="Loading report..." />;
   }
   if (isHistorical && !interviewData) {
     return (
@@ -166,13 +159,6 @@ export default function ReportPage() {
         }
       />
 
-      {loading && (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
-        </div>
-      )}
-
-      {!loading && (
         <main className="relative max-w-7xl mx-auto px-6 py-10 space-y-10">
           {/* Meta */}
           <section>
@@ -395,7 +381,6 @@ export default function ReportPage() {
             </div>
           </div>
         </main>
-      )}
     </div>
   );
 }
