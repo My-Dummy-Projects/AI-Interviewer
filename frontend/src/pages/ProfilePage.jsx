@@ -10,6 +10,10 @@ import {
   KeyRound,
   Bell,
   LayoutDashboard,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { useAuth } from "@/context/AuthContext";
+import { useUser } from "@clerk/clerk-react";
 import api from "@/lib/api";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
@@ -29,6 +34,14 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
+
+  const { user: clerkUser } = useUser();
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -73,6 +86,36 @@ export default function ProfilePage() {
       navigate("/");
     } catch {
       // ignore
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters");
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      await clerkUser.updatePassword({
+        currentPassword,
+        newPassword,
+        signOutOfOtherSessions: true,
+      });
+      toast.success("Password updated successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordOpen(false);
+    } catch (err) {
+      const detail = err.errors?.[0]?.longMessage || "Failed to update password";
+      toast.error(detail);
+    } finally {
+      setPasswordSaving(false);
     }
   };
 
@@ -217,13 +260,98 @@ export default function ProfilePage() {
                     <p className="text-xs text-zinc-500">Coming soon</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02]">
+                <button
+                  onClick={() => setPasswordOpen(!passwordOpen)}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors text-left"
+                >
                   <KeyRound className="h-5 w-5 text-zinc-400 shrink-0" strokeWidth={1.5} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white">Password</p>
-                    <p className="text-xs text-zinc-500">Managed through your account provider</p>
+                    <p className="text-xs text-zinc-500">Change or update your password</p>
                   </div>
-                </div>
+                  {passwordOpen ? (
+                    <ChevronUp className="h-4 w-4 text-zinc-400 shrink-0" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-zinc-400 shrink-0" />
+                  )}
+                </button>
+
+                {passwordOpen && (
+                  <form onSubmit={handleChangePassword} className="space-y-4 pl-1">
+                    <div>
+                      <Label htmlFor="current-password" className="label-overline mb-2 block">Current Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="current-password"
+                          type={showPasswords ? "text" : "password"}
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          placeholder="Enter current password"
+                          className="h-12 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-base text-white placeholder:text-zinc-600 pr-10"
+                          required
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          aria-label={showPasswords ? "Hide passwords" : "Show passwords"}
+                          onClick={() => setShowPasswords(!showPasswords)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                        >
+                          {showPasswords ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="new-password" className="label-overline mb-2 block">New Password</Label>
+                      <Input
+                        id="new-password"
+                        type={showPasswords ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Min. 6 characters"
+                        className="h-12 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-base text-white placeholder:text-zinc-600"
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="confirm-password" className="label-overline mb-2 block">Confirm New Password</Label>
+                      <Input
+                        id="confirm-password"
+                        type={showPasswords ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Re-enter new password"
+                        className="h-12 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-base text-white placeholder:text-zinc-600"
+                        required
+                      />
+                    </div>
+                    <div className="flex gap-3 pt-1">
+                      <Button
+                        type="submit"
+                        disabled={!currentPassword || !newPassword || !confirmPassword || passwordSaving}
+                        className="h-10 rounded-full bg-white hover:bg-zinc-200 text-black px-5 text-sm font-semibold tracking-wide disabled:bg-white/10 disabled:text-zinc-600"
+                      >
+                        {passwordSaving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          "Update password"
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => { setPasswordOpen(false); setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); }}
+                        className="h-10 rounded-full bg-transparent border-white/15 hover:bg-white/5 text-white px-5 text-sm"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </div>
             </div>
 
