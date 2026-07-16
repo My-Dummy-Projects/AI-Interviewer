@@ -2,7 +2,7 @@ import React, { lazy, Suspense } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ErrorBoundary, GlobalErrorHandler } from "@/components/ErrorBoundary";
 import { Toaster } from "sonner";
 import { InterviewProvider } from "@/context/InterviewContext";
 import { AuthProvider } from "@/context/AuthContext";
@@ -25,6 +25,7 @@ const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || "";
 function App() {
   return (
     <div className="App">
+      <GlobalErrorHandler />
       <ClerkProvider
         publishableKey={clerkPubKey}
         afterSignUpUrl="/dashboard"

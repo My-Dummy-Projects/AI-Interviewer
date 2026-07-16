@@ -606,29 +606,29 @@ export default function DashboardPage() {
           <>
             <Link
               to="/profile"
-              className="hidden md:flex items-center gap-2.5 h-8 pl-2 pr-3 rounded-full border border-white/10 hover:bg-white/5 transition-colors group"
+              className="hidden md:flex items-center gap-2.5 h-10 pl-2.5 pr-4 rounded-full border border-white/10 hover:bg-white/5 transition-colors group"
             >
-              <div className="h-5 w-5 rounded-full bg-gradient-to-br from-cyan-400 to-emerald-400 flex items-center justify-center text-[9px] font-bold text-black shrink-0">
+              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-cyan-400 to-emerald-400 flex items-center justify-center text-xs font-bold text-black shrink-0">
                 {profile?.display_name?.charAt(0)?.toUpperCase() || "U"}
               </div>
-              <span className="text-xs text-zinc-400 group-hover:text-white transition-colors max-w-[100px] truncate">
+              <span className="text-md text-zinc-400 group-hover:text-white transition-colors max-w-[140px] truncate font-medium">
                 {profile?.display_name || "User"}
               </span>
             </Link>
             <Link
               to="/profile"
-              className="md:hidden h-8 w-8 rounded-full border border-white/10 hover:bg-white/5 flex items-center justify-center text-zinc-400 hover:text-white transition-all"
+              className="md:hidden h-10 w-10 rounded-full border border-white/10 hover:bg-white/5 flex items-center justify-center text-zinc-400 hover:text-white transition-all"
               title="Profile"
             >
-              <Settings className="h-3.5 w-3.5" strokeWidth={1.5} />
+              <Settings className="h-4 w-4" strokeWidth={1.5} />
             </Link>
             <button
               onClick={handleSignOut}
               disabled={signingOut}
               aria-label="Sign out"
-              className="h-8 w-8 rounded-full border border-white/10 hover:bg-red-500/10 hover:border-red-400/30 text-zinc-500 hover:text-red-300 flex items-center justify-center transition-all disabled:opacity-40"
+              className="h-10 w-10 rounded-full border border-white/10 hover:bg-red-500/10 hover:border-red-400/30 text-zinc-500 hover:text-red-300 flex items-center justify-center transition-all disabled:opacity-40"
             >
-              <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} />
+              <LogOut className="h-5 w-5" strokeWidth={1.5} />
             </button>
           </>
         }
