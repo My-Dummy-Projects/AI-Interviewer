@@ -472,7 +472,7 @@ export default function DashboardPage() {
     if (user) {
       Promise.all([loadProfile(), loadStats(), loadInterviews(), loadSubscription()]);
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, loadProfile, loadStats, loadInterviews, loadSubscription]);
 
   const loadProfile = useCallback(async () => {
     try {
