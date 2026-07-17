@@ -8,6 +8,7 @@ from openai import AsyncOpenAI
 
 from config import logger, OPENROUTER_API_KEY, OPENROUTER_MODEL, supabase
 from models import FeedbackRequest, FeedbackReport, SkillScores, QuestionEvaluation, PLAN_LIMITS
+from routes_user import consume_interview_credit, refund_interview_credit, check_interview_quota
 
 
 def ensure_user_profile(current_user) -> None:
@@ -217,6 +218,7 @@ def fallback_report(req: FeedbackRequest, reason: str) -> FeedbackReport:
     answered = len(user_turns)
     asked = len(assistant_turns)
     base = 50 if answered else 20
+    count = min(max(asked, answered), 5)
     return FeedbackReport(
         overallScore=base,
         skills=SkillScores(technical=base, communication=base, problemSolving=base, confidence=base),
@@ -232,7 +234,7 @@ def fallback_report(req: FeedbackRequest, reason: str) -> FeedbackReport:
                 score=base,
                 feedback="Automated evaluation unavailable.",
             )
-            for i in range(min(max(asked, answered), 5))
+            for i in range(count)
         ],
         finalRecommendation="Lean Hire",
         learningSuggestions=[
@@ -269,6 +271,7 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
             oai_client = AsyncOpenAI(
                 api_key=OPENROUTER_API_KEY,
                 base_url="https://openrouter.ai/api/v1",
+                timeout=60.0,
             )
             completion = await oai_client.chat.completions.create(
                 model=OPENROUTER_MODEL,
@@ -295,28 +298,7 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
 
     if current_user:
         try:
-            sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", current_user.id).execute()
-            sub = sub_result.data[0] if sub_result.data else None
-            if sub is None:
-                plan_cfg = PLAN_LIMITS.get("free", {"interviews_allowed": 5})
-                supabase.table("user_subscriptions").insert({
-                    "user_id": current_user.id,
-                    "plan": "free",
-                    "interviews_allowed": plan_cfg["interviews_allowed"],
-                    "interviews_used": 0,
-                    "status": "active",
-                }).execute()
-                sub = {"interviews_allowed": plan_cfg["interviews_allowed"], "interviews_used": 0}
-
-            allowed = sub.get("interviews_allowed", 5)
-            used = sub.get("interviews_used", 0)
-            remaining = allowed - used
-            if remaining <= 0:
-                logger.warning(f"User {current_user.id} has no remaining interviews (used {used}/{allowed})")
-                raise HTTPException(
-                    status_code=403,
-                    detail=f"You have used all {allowed} interviews on your {sub.get('plan', 'free')} plan. Upgrade to continue.",
-                )
+            check_interview_quota(current_user.id)
         except HTTPException:
             raise
         except Exception as e:
@@ -334,40 +316,41 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
             logger.info(f"Interview payload built: {json.dumps(payload)}")
             result = supabase.table("interviews").insert(payload).execute()
             if result.data:
-                interview_id = result.data[0]["id"]
+                    interview_id = result.data[0]["id"]
 
-                # Attempt to store JSONB report/transcript separately (columns may not exist in all deployments)
-                if jsonb_report is not None or jsonb_transcript is not None:
-                    try:
-                        update_data = {}
-                        if jsonb_report is not None:
-                            update_data["report"] = jsonb_report
-                        if jsonb_transcript is not None:
-                            update_data["transcript"] = jsonb_transcript
-                        supabase.table("interviews").update(update_data).eq("id", interview_id).execute()
-                    except Exception as jsonb_err:
-                        logger.warning(f"Could not set JSONB columns (may not exist in schema): {jsonb_err}")
+                    # Attempt to store JSONB report/transcript separately (columns may not exist in all deployments)
+                    if jsonb_report is not None or jsonb_transcript is not None:
+                        try:
+                            update_data = {}
+                            if jsonb_report is not None:
+                                update_data["report"] = jsonb_report
+                            if jsonb_transcript is not None:
+                                update_data["transcript"] = jsonb_transcript
+                            supabase.table("interviews").update(update_data).eq("id", interview_id).execute()
+                        except Exception as jsonb_err:
+                            logger.warning(f"Could not set JSONB columns (may not exist in schema): {jsonb_err}")
 
-                logger.info(f"Interview {interview_id} saved, now saving normalized data")
-                save_normalized_data(req, report, interview_id)
+                    logger.info(f"Interview {interview_id} saved, now saving normalized data")
+                    save_normalized_data(req, report, interview_id)
 
-                # Increment interview usage count
-                try:
-                    current_sub = supabase.table("user_subscriptions").select("interviews_used").eq("user_id", current_user.id).execute()
-                    current_used = current_sub.data[0]["interviews_used"] if current_sub.data else 0
-                    supabase.table("user_subscriptions").update({
-                        "interviews_used": current_used + 1,
-                        "updated_at": datetime.now(timezone.utc).isoformat(),
-                    }).eq("user_id", current_user.id).execute()
-                    logger.info(f"Incremented interviews_used for user {current_user.id} to {current_used + 1}")
-                except Exception as usage_err:
-                    logger.warning(f"Failed to increment interview usage for {current_user.id}: {usage_err}")
+                    # Atomically consume interview credit
+                    credit_ok = consume_interview_credit(current_user.id)
+                    if credit_ok:
+                        logger.info(f"Interview credit consumed for user {current_user.id}")
+                    else:
+                        logger.warning(f"Failed to consume interview credit for user {current_user.id}")
+                        refund_interview_credit(current_user.id)
 
-                logger.info(f"Interview {interview_id} fully saved with normalized data")
+                    logger.info(f"Interview {interview_id} fully saved with normalized data")
             else:
                 logger.error(f"Failed to save interview: no data returned. Response: {result}")
+                refund_interview_credit(current_user.id)
         except Exception as e:
             logger.error(f"Failed to save interview: {e}\n{traceback.format_exc()}")
+            try:
+                refund_interview_credit(current_user.id)
+            except Exception:
+                pass
     else:
         logger.warning("current_user is None, skipping database save")
 

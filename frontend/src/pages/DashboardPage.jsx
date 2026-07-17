@@ -39,6 +39,7 @@ import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
+import { openRazorpayCheckout } from "@/lib/razorpay";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
 
@@ -469,10 +470,7 @@ export default function DashboardPage() {
       return;
     }
     if (user) {
-      loadProfile();
-      loadStats();
-      loadInterviews();
-      loadSubscription();
+      Promise.all([loadProfile(), loadStats(), loadInterviews(), loadSubscription()]);
     }
   }, [user, authLoading, navigate]);
 
@@ -593,7 +591,7 @@ export default function DashboardPage() {
 
   const greeting = greetingFor(new Date().getHours());
 
-  if (authLoading || (!user && !authLoading)) {
+  if (authLoading) {
     return <LoadingScreen message="Loading dashboard..." />;
   }
 
@@ -700,7 +698,7 @@ export default function DashboardPage() {
                       data-testid="dashboard-start-cta"
                       className="rounded-full bg-white hover:bg-zinc-200 text-black h-11 px-6 text-sm font-semibold shadow-lg shadow-white/5 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
-                      <Play className="mr-2 h-4 w-4 fill-black" strokeWidth={0} />
+                      <Play className="mr-2 h-4 w-4" strokeWidth={2.5} />
                       Start new interview
                     </Button>
                   </Link>
@@ -870,15 +868,115 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-              {subscription.plan === "free" && (
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500">
+                {subscription.isLifetime ? (
+                  <span>Lifetime access · never expires</span>
+                ) : subscription.currentPeriodEnd ? (
+                  <span>Resets on {new Date(subscription.currentPeriodEnd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                ) : null}
+                <span>Max {subscription.maxDurationMinutes} min per interview</span>
+              </div>
+              {subscription.plan === "free" ? (
                 <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
                   <p className="text-xs text-zinc-500">
                     <ShieldCheck className="h-3.5 w-3.5 inline mr-1 text-cyan-400" />
                     Upgrade to unlock more interviews and features.
                   </p>
-                  <Button className="h-9 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-4">
-                    Upgrade
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const { orderId, amount, currency, keyId, userEmail, userName } = await api.createOrder("starter");
+                          openRazorpayCheckout({
+                            keyId, orderId, amount, currency,
+                            name: "Voxa",
+                            description: "Starter Plan - ₹299/month",
+                            prefill: { name: userName, email: userEmail },
+                            onSuccess: async (response) => {
+                              try {
+                                await api.verifyPayment({
+                                  razorpay_order_id: response.razorpay_order_id,
+                                  razorpay_payment_id: response.razorpay_payment_id,
+                                  razorpay_signature: response.razorpay_signature,
+                                });
+                                toast.success("Subscribed to Starter plan!");
+                                window.location.reload();
+                              } catch { toast.error("Verification failed."); }
+                            },
+                            onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
+                          });
+                        } catch { toast.error("Failed to start payment."); }
+                      }}
+                      className="h-9 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-4"
+                    >
+                      Starter ₹299
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const { orderId, amount, currency, keyId, userEmail, userName } = await api.createOrder("pro");
+                          openRazorpayCheckout({
+                            keyId, orderId, amount, currency,
+                            name: "Voxa",
+                            description: "Pro Plan - ₹499/month",
+                            prefill: { name: userName, email: userEmail },
+                            onSuccess: async (response) => {
+                              try {
+                                await api.verifyPayment({
+                                  razorpay_order_id: response.razorpay_order_id,
+                                  razorpay_payment_id: response.razorpay_payment_id,
+                                  razorpay_signature: response.razorpay_signature,
+                                });
+                                toast.success("Subscribed to Pro plan!");
+                                window.location.reload();
+                              } catch { toast.error("Verification failed."); }
+                            },
+                            onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
+                          });
+                        } catch { toast.error("Failed to start payment."); }
+                      }}
+                      className="h-9 rounded-full border border-white/20 hover:bg-white/10 text-white text-xs font-semibold px-4"
+                    >
+                      Pro ₹499
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+                  <p className="text-xs text-zinc-500">
+                    <ShieldCheck className="h-3.5 w-3.5 inline mr-1 text-cyan-400" />
+                    You are on the <span className="text-white capitalize">{subscription.plan}</span> plan.
+                  </p>
+                  {subscription.plan === "starter" && (
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const { orderId, amount, currency, keyId, userEmail, userName } = await api.createOrder("pro");
+                          openRazorpayCheckout({
+                            keyId, orderId, amount, currency,
+                            name: "Voxa",
+                            description: "Pro Plan - ₹499/month",
+                            prefill: { name: userName, email: userEmail },
+                            onSuccess: async (response) => {
+                              try {
+                                await api.verifyPayment({
+                                  razorpay_order_id: response.razorpay_order_id,
+                                  razorpay_payment_id: response.razorpay_payment_id,
+                                  razorpay_signature: response.razorpay_signature,
+                                });
+                                toast.success("Upgraded to Pro plan!");
+                                window.location.reload();
+                              } catch { toast.error("Verification failed."); }
+                            },
+                            onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
+                          });
+                        } catch { toast.error("Failed to start payment."); }
+                      }}
+                      className="h-9 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-4"
+                    >
+                      Upgrade to Pro
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -886,9 +984,6 @@ export default function DashboardPage() {
         )}
 
         {/* ─── stats grid ─── */}
-
-        {/* ─── empty state ─── */}
-        {/* {!hasData && !loading && <EmptyState />} */}
 
         {/* ─── stats grid ─── */}
         {hasData && (
@@ -1102,7 +1197,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-xl font-bold text-white">
                   {weekAggregates.thisWeek >= weeklyGoal
-                    ? "Goal hit! 🎯"
+                    ? "Goal hit!"
                     : `${weeklyGoal - weekAggregates.thisWeek} more`}
                 </div>
                 <div className="text-[11px] text-zinc-600 mt-0.5">

@@ -1,19 +1,9 @@
 from fastapi import HTTPException, Header
 from typing import Optional
-import json
-import base64
 from types import SimpleNamespace
 import uuid
 
-from config import logger, supabase
-
-
-def _decode_jwt_payload(token: str) -> dict:
-    payload_b64 = token.split(".")[1]
-    pad = len(payload_b64) % 4
-    if pad:
-        payload_b64 += "=" * (4 - pad)
-    return json.loads(base64.urlsafe_b64decode(payload_b64))
+from config import logger, supabase, CLERK_JWT_ISSUER
 
 
 def _verify_with_supabase(token: str):
@@ -30,19 +20,29 @@ def _verify_with_supabase(token: str):
         return None
 
 
-def _extract_from_jwt_payload(token: str):
+def _verify_with_clerk(token: str):
     try:
-        claims = _decode_jwt_payload(token)
-        raw_user_id = claims.get("sub", "")
-        user_id = normalize_user_id(raw_user_id)
-        email = extract_user_email_from_claims(claims)
+        import jwt
+        from jwt import PyJWKClient
+        jwks_url = f"{CLERK_JWT_ISSUER}/.well-known/jwks.json"
+        jwks_client = PyJWKClient(jwks_url, cache_keys=True)
+        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        claims = jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256"],
+            issuer=CLERK_JWT_ISSUER,
+        )
+        user_id = claims.get("sub", "")
+        if not user_id:
+            return None
+        email = claims.get("email", "") or ""
         name = claims.get("name", "") or ""
-        if user_id:
-            logger.info(f"Auth extracted from unverified JWT payload for user {user_id}")
-            return SimpleNamespace(id=user_id, email=email, name=name)
+        logger.info(f"Auth verified via Clerk JWT for user {user_id}")
+        return SimpleNamespace(id=user_id, email=email, name=name)
     except Exception as e:
-        logger.warning(f"JWT payload decode failed: {e}")
-    return None
+        logger.warning(f"Clerk JWT verification failed: {e}")
+        return None
 
 
 def normalize_user_id(user_id: str) -> str:
@@ -64,36 +64,16 @@ def normalize_user_id(user_id: str) -> str:
         return value
 
 
-def extract_user_email_from_claims(claims: dict) -> str:
-    if not claims:
-        return ""
-
-    for key in ("email", "primary_email"):
-        value = claims.get(key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-
-    email_addresses = claims.get("email_addresses") or []
-    if isinstance(email_addresses, list):
-        for item in email_addresses:
-            if isinstance(item, dict):
-                value = item.get("email_address") or item.get("email") or ""
-                if isinstance(value, str) and value.strip():
-                    return value.strip()
-
-    return ""
-
-
 async def get_current_user(authorization: Optional[str] = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
     token = authorization.split(" ")[1]
 
-    user = _verify_with_supabase(token)
+    user = _verify_with_clerk(token)
     if user:
         return user
 
-    user = _extract_from_jwt_payload(token)
+    user = _verify_with_supabase(token)
     if user:
         return user
 
@@ -105,11 +85,11 @@ async def try_get_user(authorization: Optional[str] = Header(None)):
         return None
     token = authorization.split(" ")[1]
 
-    user = _verify_with_supabase(token)
+    user = _verify_with_clerk(token)
     if user:
         return user
 
-    user = _extract_from_jwt_payload(token)
+    user = _verify_with_supabase(token)
     if user:
         return user
 

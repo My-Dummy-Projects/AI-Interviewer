@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { Mic, MicOff, PhoneOff, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,6 @@ function fmtTime(sec) {
   const s = Math.floor(sec % 60).toString().padStart(2, "0");
   return `${m}:${s}`;
 }
-
-let _cachedConfig = null;
 
 export default function InterviewPage() {
   const navigate = useNavigate();
@@ -38,6 +36,7 @@ export default function InterviewPage() {
   const partialsRef = useRef({ user: "", assistant: "" });
   const endedGuardRef = useRef(false);
   const configRef = useRef(null);
+  const cachedConfigRef = useRef(null);
   const handleEndRef = useRef(null);
   const debounceRef = useRef(null);
 
@@ -174,32 +173,27 @@ export default function InterviewPage() {
       transcriptRef.current = [...transcriptRef.current, turn];
       buildDisplayTranscript();
     };
+    function extractErrorMessage(e) {
+      if (typeof e === "string") return e;
+      if (e?.error?.message) return e.error.message;
+      if (e?.errorMsg) return e.errorMsg;
+      if (e?.message) return e.message;
+      if (typeof e?.error === "string") return e.error;
+      try { return JSON.stringify(e); } catch { return "Voice connection error."; }
+    }
+
     const onError = (e) => {
       if (destroyed) return;
       setStatus("error");
-      const msg =
-        typeof e === "string"
-          ? e
-          : e?.error?.message ||
-            e?.errorMsg ||
-            e?.message ||
-            (typeof e?.error === "string" ? e.error : null) ||
-            (() => {
-              try {
-                return JSON.stringify(e);
-              } catch {
-                return "Voice connection error.";
-              }
-            })();
-      setError(String(msg));
+      setError(extractErrorMessage(e));
     };
 
     async function boot() {
       try {
-        if (!_cachedConfig) {
-          _cachedConfig = await api.getConfig();
+        if (!cachedConfigRef.current) {
+          cachedConfigRef.current = await api.getConfig();
         }
-        const cfg = _cachedConfig;
+        const cfg = cachedConfigRef.current;
         if (destroyed) return;
         configRef.current = cfg;
         if (!cfg.ready) {
@@ -384,6 +378,13 @@ export default function InterviewPage() {
           <div className="mt-6 text-xs font-mono uppercase tracking-widest text-zinc-500">
             Time remaining · {fmtTime(remaining)}
           </div>
+
+          {remaining <= 60 && remaining > 0 && status !== "ended" && (
+            <div className="mt-4 flex items-center gap-2 px-4 py-2 rounded-full bg-amber-400/10 border border-amber-400/20 text-xs text-amber-300">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              Less than 1 minute remaining — interview will end shortly.
+            </div>
+          )}
 
           {/* Error */}
           {status === "error" && error && (

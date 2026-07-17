@@ -1,3 +1,8 @@
+"""
+MongoDB compatibility layer — NOT used in production.
+The app uses Supabase directly. This file exists only for legacy tests.
+"""
+
 import os
 import uuid
 from types import SimpleNamespace
@@ -19,46 +24,6 @@ class MongoAuthSession(dict):
         super().__init__(access_token=access_token, refresh_token=refresh_token)
         self.access_token = access_token
         self.refresh_token = refresh_token
-
-
-class MongoAuthCompat:
-    def __init__(self, client):
-        self._client = client
-
-    def sign_up(self, data: dict):
-        email = data.get("email", "") or ""
-        user_id = str(uuid.uuid4())
-        return SimpleNamespace(user=MongoAuthUser(user_id, email), session=MongoAuthSession())
-
-    def sign_in_with_password(self, data: dict):
-        email = data.get("email", "") or ""
-        user_id = str(uuid.uuid5(uuid.NAMESPACE_URL, email or "anonymous"))
-        return SimpleNamespace(user=MongoAuthUser(user_id, email), session=MongoAuthSession())
-
-    def get_user(self, token: str):
-        return SimpleNamespace(user=MongoAuthUser("anonymous", ""), session=MongoAuthSession())
-
-    def reset_password_email(self, email: str, options: Optional[dict] = None):
-        return {"email": email, "options": options or {}}
-
-    class Admin:
-        def sign_out(self, user_id: str):
-            return True
-
-        def update_user_by_id(self, user_id: str, data: dict):
-            return {"id": user_id, **data}
-
-    admin = Admin()
-
-    def refresh_session(self, refresh_token: str):
-        return SimpleNamespace(
-            user=MongoAuthUser("anonymous", ""),
-            access_token="mongo-token",
-            refresh_token=refresh_token,
-            expires_in=3600,
-            expires_at=0,
-            token_type="bearer",
-        )
 
 
 class MemoryCollection:
@@ -179,10 +144,6 @@ class MongoCompatClient:
     def __init__(self, database=None, memory_store=None):
         self._database = database
         self._memory_store = memory_store or {}
-        self.auth = MongoAuthCompat(self)
-
-        if not self._database:
-            self._memory_store.setdefault("__collections__", {})
 
     def table(self, collection_name: str):
         return MongoTableAdapter(collection_name, self)
@@ -190,7 +151,6 @@ class MongoCompatClient:
     def _get_collection(self, collection_name: str):
         if self._database is not None:
             return self._database[collection_name]
-
         if collection_name not in self._memory_store:
             self._memory_store[collection_name] = MemoryCollection()
         return self._memory_store[collection_name]
@@ -213,7 +173,6 @@ class MongoCompatClient:
                 inserted.append(_normalize_document(item))
                 collection.insert_one(item)
             return SimpleNamespace(data=inserted)
-
         normalized = _normalize_document(payload)
         collection.insert_one(normalized)
         return SimpleNamespace(data=[normalized])
@@ -237,7 +196,6 @@ def _matches_filter(doc: dict, filter: dict) -> bool:
 def _normalize_document(doc: Any) -> dict:
     if not isinstance(doc, dict):
         return {}
-
     normalized = dict(doc)
     if "id" not in normalized:
         normalized["id"] = str(normalized.get("_id") or uuid.uuid4())
@@ -249,7 +207,6 @@ def _normalize_document(doc: Any) -> dict:
 def build_mongo_client() -> MongoCompatClient:
     mongodb_uri = os.environ.get("MONGODB_URI", "").strip()
     mongodb_db = os.environ.get("MONGODB_DB", "ai_interviewer").strip()
-
     if mongodb_uri:
         try:
             client = MongoClient(mongodb_uri, serverSelectionTimeoutMS=2000)
@@ -258,5 +215,4 @@ def build_mongo_client() -> MongoCompatClient:
             return MongoCompatClient(database=db)
         except (PyMongoError, Exception):
             pass
-
     return MongoCompatClient(memory_store={})

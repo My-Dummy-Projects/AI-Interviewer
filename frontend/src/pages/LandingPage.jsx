@@ -25,6 +25,7 @@ import {
   Zap,
   Users,
   Rocket,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +36,8 @@ import {
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { VoxaLogo } from "@/components/VoxaLogo";
+import api from "@/lib/api";
+import { openRazorpayCheckout } from "@/lib/razorpay";
 
 /* -------- Small subcomponents -------- */
 
@@ -372,40 +375,102 @@ const TestimonialCard = React.memo(function TestimonialCard({ quote, name, role,
 
 const PRICING = [
   {
+    id: "free",
     name: "Free",
     price: "₹0",
-    period: "/ month",
+    period: "",
     desc: "Perfect for trying out Voxa.",
     features: [
-      "2 mock interviews (5-10 min each)",
-      "Instant AI feedback & evaluation",
-      "Overall score & skill breakdown",
-      "Technical & HR interviews",
+      "2 interviews total (lifetime)",
+      "Up to 15 minutes per interview",
+      "Basic feedback only",
+      "Personalized Learning Plan hidden",
     ],
-    note: "No history, analytics, or progress tracking.",
+    note: "No analytics, no progress tracking.",
     cta: { label: "Get Started Free", to: "/signin", primary: true, testid: "pricing-free-cta" },
-    upgradeMsg: "Try Voxa with 2 interviews and experience AI-powered mock interviews.",
   },
   {
+    id: "starter",
+    name: "Starter",
+    price: "₹299",
+    period: "/ month",
+    desc: "For candidates practicing regularly.",
+    features: [
+      "10 interviews per month",
+      "Up to 15 minutes per interview",
+      "Interview analytics and feedback",
+      "Personalized Learning Plan included",
+      "Resets every billing cycle",
+    ],
+    note: "Best for active job seekers & students.",
+    cta: { label: "Subscribe Now", to: "#subscribe", primary: true, testid: "pricing-starter-cta" },
+  },
+  {
+    id: "pro",
     name: "Pro",
     price: "₹499",
     period: "/ month",
     desc: "For serious job seekers preparing consistently.",
     features: [
-      "10 interviews/month · Up to 30 min each",
-      "Everything in Free, plus:",
-      "History, analytics & progress tracking",
-      "Score trends, streaks & goal setting",
+      "20 interviews per month",
+      "Up to 30 minutes per interview",
+      "Includes Personalized Learning Plan",
+      "Priority access to new features",
+      "Resets every billing cycle",
     ],
-    note: "Best for active job seekers, students & professionals.",
-    cta: { label: "Subscribe Now", to: "#subscribe", primary: true, testid: "pricing-pro-cta", disabled: true },
+    note: "Best for power users & professionals.",
+    cta: { label: "Subscribe Now", to: "#subscribe", primary: true, testid: "pricing-pro-cta" },
     highlight: true,
-    upgradeMsg: "Practice consistently and improve with detailed insights & saved history.",
   },
 ];
 
 const PricingCard = React.memo(function PricingCard({ tier }) {
+  const { user } = useAuth();
   const isHighlight = tier.highlight;
+  const isFree = tier.id === "free";
+  const [loading, setLoading] = useState(false);
+
+  const handleSubscribe = async () => {
+    if (isFree) return;
+    if (!user) {
+      window.location.href = "/signin";
+      return;
+    }
+    setLoading(true);
+    try {
+      const { orderId, amount, currency, keyId, userEmail, userName } = await api.createOrder(tier.id);
+      openRazorpayCheckout({
+        keyId,
+        orderId,
+        amount,
+        currency,
+        name: "Voxa",
+        description: `${tier.name} Plan - ${tier.price}/month`,
+        prefill: { name: userName, email: userEmail },
+        onSuccess: async (response) => {
+          try {
+            await api.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            toast.success(`Subscribed to ${tier.name} plan!`);
+            window.location.href = "/dashboard";
+          } catch {
+            toast.error("Payment verification failed. Please contact support.");
+          }
+        },
+        onError: (msg) => {
+          if (msg !== "Payment cancelled") toast.error(msg);
+        },
+      });
+    } catch {
+      toast.error("Failed to initiate payment. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div
       className={`relative rounded-2xl border p-6 h-full flex flex-col ${
@@ -454,36 +519,41 @@ const PricingCard = React.memo(function PricingCard({ tier }) {
         <p className="mt-4 text-xs text-zinc-500 leading-relaxed">{tier.note}</p>
       )}
       <div className="mt-6">
-        {tier.cta.disabled ? (
-          <Button
-            data-testid={tier.cta.testid}
-            onClick={() => toast.info("Subscriptions coming soon! We'll keep you posted.")}
-            variant="outline"
-            className="w-full rounded-full h-11 bg-transparent border-white/15 text-white hover:bg-white/5"
-          >
-            {tier.cta.label}
-          </Button>
-        ) : (
-          <Link to={tier.cta.to}>
+        {isFree ? (
+          <Link to={user ? "/setup" : "/signin"}>
             <Button
               data-testid={tier.cta.testid}
-              className={`w-full rounded-full h-11 font-semibold ${
-                tier.cta.primary
-                  ? "bg-white hover:bg-zinc-200 text-black"
-                  : "bg-white/10 hover:bg-white/15 text-white border border-white/10"
-              }`}
+              className="w-full rounded-full h-11 font-semibold bg-white hover:bg-zinc-200 text-black"
             >
               {tier.cta.label}
               <ArrowRight className="ml-1.5 h-4 w-4" />
             </Button>
           </Link>
+        ) : (
+          <Button
+            data-testid={tier.cta.testid}
+            onClick={handleSubscribe}
+            disabled={loading}
+            className={`w-full rounded-full h-11 font-semibold ${
+              isHighlight
+                ? "bg-white hover:bg-zinc-200 text-black"
+                : "bg-white/10 hover:bg-white/15 text-white border border-white/10"
+            }`}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Please wait...
+              </>
+            ) : (
+              <>
+                {tier.cta.label}
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </>
+            )}
+          </Button>
         )}
       </div>
-      {tier.upgradeMsg && (
-        <p className="mt-3 text-xs text-zinc-500 text-center leading-relaxed">
-          {tier.upgradeMsg}
-        </p>
-      )}
     </div>
   );
 });
@@ -491,7 +561,7 @@ const PricingCard = React.memo(function PricingCard({ tier }) {
 const FAQS = [
   {
     q: "Is Voxa really free?",
-    a: "Yes, the Free plan gives you 2 mock interviews at no cost with interview durations of 5 or 10 minutes, instant AI feedback, and full question-by-question evaluation. The Pro plan adds advanced features, longer sessions, and detailed progress tracking for serious preparation.",
+    a: "Yes, the Free plan gives you 2 mock interviews at no cost with interview durations of 5 or 10 minutes, instant AI feedback, and full question-by-question evaluation. The Starter (₹299/mo) and Pro (₹499/mo) plans add advanced features, longer sessions, detailed progress tracking, and personalized learning plans for serious preparation.",
   },
   {
     q: "How does the voice interview work?",
@@ -939,7 +1009,7 @@ export default function LandingPage() {
               Choose the plan that fits your preparation journey. Upgrade anytime.
             </p>
           </div>
-          <div className="mt-14 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+          <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
             {PRICING.map((tier) => (
               <PricingCard key={tier.name} tier={tier} />
             ))}

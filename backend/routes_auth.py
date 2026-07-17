@@ -57,9 +57,7 @@ async def signout(authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=503, detail="Supabase not configured")
     try:
         if authorization and authorization.startswith("Bearer "):
-            token = authorization.split(" ")[1]
-            user = supabase.auth.get_user(token)
-            supabase.auth.admin.sign_out(user.user.id)
+            supabase.auth.sign_out()
         return {"message": "Signed out successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

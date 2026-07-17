@@ -6,6 +6,7 @@ from models import ConfigResponse
 from routes_user import api_router_user
 from routes_interview import api_router_interview
 from routes_auth import api_router_auth
+from routes_payments import api_router_payments
 
 app = FastAPI(title="AI Voice Mock Interview MVP")
 
@@ -30,11 +31,13 @@ app.include_router(api_base)
 app.include_router(api_router_user)
 app.include_router(api_router_interview)
 app.include_router(api_router_auth)
+app.include_router(api_router_payments)
 
+origins = ['*'] if CORS_ORIGINS == '*' else CORS_ORIGINS.split(',')
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=CORS_ORIGINS.split(','),
+    allow_credentials=origins != ['*'],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
-from config import supabase
+from config import supabase, logger
 from models import (
     UserProfileUpdate, UserProfileResponse,
     InterviewSummary, InterviewHistoryResponse, InterviewDetail,
     DashboardStats, FeedbackEntryRequest, FeedbackEntryResponse,
-    SubscriptionResponse, SubscriptionUsageResponse, PLAN_LIMITS,
+    SubscriptionResponse, SubscriptionUsageResponse, PLAN_LIMITS, PLAN_RANK,
 )
 from deps import get_current_user, try_get_user, normalize_user_id
+from feedback import ensure_user_profile
 
 api_router_user = APIRouter(prefix="/api/user")
 
@@ -94,8 +95,8 @@ def get_user_id_candidates(user_id: str, email: str = "", client=None) -> list[s
             candidate = normalize_user_id(row.get("user_id") or "")
             if candidate and candidate not in candidates:
                 candidates.append(candidate)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"get_user_id_candidates: email lookup failed for {email}: {e}")
 
     return candidates
 
@@ -284,7 +285,8 @@ async def submit_tool_feedback(req: FeedbackEntryRequest, current_user=Depends(g
     if not req.feedback or not req.feedback.strip():
         raise HTTPException(status_code=400, detail="Feedback text is required")
 
-    created_at = datetime.utcnow().isoformat()
+    ensure_user_profile(current_user)
+    created_at = datetime.now(timezone.utc).isoformat()
     result = supabase.table("feedback_entries").insert({
         "user_id": current_user.id,
         "email": getattr(current_user, "email", ""),
@@ -304,12 +306,43 @@ async def submit_tool_feedback(req: FeedbackEntryRequest, current_user=Depends(g
     )
 
 
+def check_and_reset_period(sub: dict) -> dict:
+    """If the period has expired, reset usage to zero for paid plans."""
+    if not sub:
+        return sub
+    plan = sub.get("plan", "free")
+    if plan == "free":
+        return sub
+    period_end = sub.get("current_period_end")
+    if not period_end:
+        return sub
+    try:
+        end = datetime.fromisoformat(str(period_end).replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) > end:
+            plan_config = PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
+            supabase.table("user_subscriptions").update({
+                "interviews_used": 0,
+                "interviews_allowed": plan_config["interviews_allowed"],
+                "current_period_start": datetime.now(timezone.utc).isoformat(),
+                "current_period_end": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }).eq("id", sub["id"]).execute()
+            sub["interviews_used"] = 0
+            sub["interviews_allowed"] = plan_config["interviews_allowed"]
+            logger.info(f"Subscription period reset for user {sub.get('user_id')}: plan={plan}")
+    except (ValueError, TypeError):
+        pass
+    return sub
+
+
 def get_or_create_subscription(user_id: str) -> dict:
     result = supabase.table("user_subscriptions").select("*").eq("user_id", user_id).execute()
     if result.data:
-        return result.data[0]
+        sub = result.data[0]
+        sub = check_and_reset_period(sub)
+        return sub
 
-    plan_config = PLAN_LIMITS.get("free", {"interviews_allowed": 5})
+    plan_config = PLAN_LIMITS.get("free", {"interviews_allowed": 2, "max_duration_minutes": 15})
     supabase.table("user_subscriptions").insert({
         "user_id": user_id,
         "plan": "free",
@@ -321,33 +354,94 @@ def get_or_create_subscription(user_id: str) -> dict:
     return result.data[0] if result.data else {}
 
 
+def check_interview_quota(user_id: str) -> dict:
+    """Check if user can start an interview. Returns sub dict or raises 403."""
+    sub = get_or_create_subscription(user_id)
+    allowed = sub.get("interviews_allowed", 0)
+    used = sub.get("interviews_used", 0)
+    remaining = allowed - used
+    if remaining <= 0:
+        plan = sub.get("plan", "free")
+        raise HTTPException(
+            status_code=403,
+            detail=f"You have used all {allowed} interviews on your {plan} plan. Upgrade to continue.",
+        )
+    return sub
+
+
+def consume_interview_credit(user_id: str):
+    """Atomically consume one interview credit. Returns True on success."""
+    for _ in range(3):
+        sub_result = supabase.table("user_subscriptions").select("interviews_used, interviews_allowed").eq("user_id", user_id).execute()
+        if not sub_result.data:
+            return False
+        current_used = sub_result.data[0]["interviews_used"]
+        allowed = sub_result.data[0]["interviews_allowed"]
+        if current_used >= allowed:
+            return False
+        result = supabase.table("user_subscriptions").update({
+            "interviews_used": current_used + 1,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("user_id", user_id).eq("interviews_used", current_used).execute()
+        if result.data:
+            return True
+    return False
+
+
+def refund_interview_credit(user_id: str):
+    """Refund one interview credit (for abandoned interviews)."""
+    sub_result = supabase.table("user_subscriptions").select("interviews_used").eq("user_id", user_id).execute()
+    if not sub_result.data:
+        return
+    current_used = sub_result.data[0]["interviews_used"]
+    if current_used > 0:
+        supabase.table("user_subscriptions").update({
+            "interviews_used": current_used - 1,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("user_id", user_id).execute()
+        logger.info(f"Refunded 1 interview credit for user {user_id}")
+
+
 @api_router_user.get("/subscription", response_model=SubscriptionResponse)
 async def get_subscription(current_user=Depends(get_current_user)):
     sub = get_or_create_subscription(current_user.id)
-    allowed = sub.get("interviews_allowed", 5)
+    plan = sub.get("plan", "free")
+    allowed = sub.get("interviews_allowed", 2)
     used = sub.get("interviews_used", 0)
+    plan_config = PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
     return SubscriptionResponse(
-        plan=sub.get("plan", "free"),
+        plan=plan,
         interviewsAllowed=allowed,
         interviewsUsed=used,
         interviewsRemaining=max(0, allowed - used),
         status=sub.get("status", "active"),
         currentPeriodStart=str(sub.get("current_period_start") or ""),
         currentPeriodEnd=str(sub.get("current_period_end") or ""),
+        maxDurationMinutes=plan_config["max_duration_minutes"],
+        hasAnalytics=plan_config["has_analytics"],
+        hasLearningPlan=plan_config["has_learning_plan"],
+        isLifetime=plan_config["lifetime"],
     )
 
 
 @api_router_user.get("/subscription/usage", response_model=SubscriptionUsageResponse)
 async def get_subscription_usage(current_user=Depends(get_current_user)):
-    sub = get_or_create_subscription(current_user.id)
-    allowed = sub.get("interviews_allowed", 5)
-    used = sub.get("interviews_used", 0)
-    remaining = max(0, allowed - used)
+    try:
+        sub = check_interview_quota(current_user.id)
+        allowed = sub.get("interviews_allowed", 0)
+        used = sub.get("interviews_used", 0)
+        remaining = allowed - used
+        can_start = remaining > 0
+    except HTTPException:
+        allowed = 0
+        used = 0
+        remaining = 0
+        can_start = False
     return SubscriptionUsageResponse(
         interviewsAllowed=allowed,
         interviewsUsed=used,
-        interviewsRemaining=remaining,
-        canStartInterview=remaining > 0,
+        interviewsRemaining=max(0, remaining),
+        canStartInterview=can_start,
     )
 
 

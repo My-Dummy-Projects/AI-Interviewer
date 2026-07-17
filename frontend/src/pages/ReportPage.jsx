@@ -13,6 +13,8 @@ import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { SkeletonReport } from "@/components/LoadingScreen";
 import api from "@/lib/api";
+import { openRazorpayCheckout } from "@/lib/razorpay";
+import { toast } from "sonner";
 
 const RECS = {
   "Strong Hire": { color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" },
@@ -349,7 +351,7 @@ export default function ReportPage() {
           </section>
 
           {/* Learning suggestions — paid only */}
-          {subscription && subscription.plan !== "free" ? (
+          {subscription && subscription.hasLearningPlan ? (
             <section className="rounded-2xl border border-cyan-400/30 bg-gradient-to-b from-cyan-400/[0.05] to-transparent p-6 md:p-8">
               <div className="flex items-center gap-2 mb-4">
                 <GraduationCap className="h-4 w-4 text-cyan-300" />
@@ -382,11 +384,34 @@ export default function ReportPage() {
                 Upgrade to a paid plan to unlock your personalized learning plan with actionable
                 next steps, topic recommendations, and practice drills tailored to your performance.
               </p>
-              <Link to="/dashboard">
-                <Button className="mt-4 h-10 rounded-full bg-white hover:bg-zinc-200 text-black px-5 text-sm font-semibold">
-                  View plans
-                </Button>
-              </Link>
+              <Button
+                onClick={async () => {
+                  try {
+                    const { orderId, amount, currency, keyId, userEmail, userName } = await api.createOrder("starter");
+                    openRazorpayCheckout({
+                      keyId, orderId, amount, currency,
+                      name: "Voxa",
+                      description: "Starter Plan - ₹299/month",
+                      prefill: { name: userName, email: userEmail },
+                      onSuccess: async (response) => {
+                        try {
+                          await api.verifyPayment({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                          });
+                          toast.success("Subscribed! Learning plan unlocked.");
+                          window.location.reload();
+                        } catch { toast.error("Verification failed."); }
+                      },
+                      onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
+                    });
+                  } catch { toast.error("Failed to start payment."); }
+                }}
+                className="mt-4 h-10 rounded-full bg-white hover:bg-zinc-200 text-black px-5 text-sm font-semibold"
+              >
+                View plans
+              </Button>
             </section>
           )}
 

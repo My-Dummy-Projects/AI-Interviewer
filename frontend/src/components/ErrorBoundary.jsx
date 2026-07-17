@@ -41,14 +41,14 @@ export class ErrorBoundary extends React.Component {
 export function GlobalErrorHandler() {
   React.useEffect(() => {
     const handler = (event) => {
-      event.preventDefault();
       if (process.env.NODE_ENV === "development") {
+        event.preventDefault();
         console.error("Unhandled error:", event.error || event.message);
       }
     };
     const rejectionHandler = (event) => {
-      event.preventDefault();
       if (process.env.NODE_ENV === "development") {
+        event.preventDefault();
         console.error("Unhandled promise rejection:", event.reason);
       }
     };

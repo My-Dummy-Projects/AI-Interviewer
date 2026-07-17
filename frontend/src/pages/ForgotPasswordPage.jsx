@@ -88,6 +88,7 @@ export default function ForgotPasswordPage() {
   };
 
   const handleResendOtp = async () => {
+    setError("");
     setLoading(true);
     try {
       await signIn.create({

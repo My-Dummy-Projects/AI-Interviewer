@@ -16,6 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import api from "@/lib/api";
+import { openRazorpayCheckout } from "@/lib/razorpay";
 import { toast } from "sonner";
 
 const EXPERIENCE_LEVELS = [
@@ -26,7 +27,7 @@ const EXPERIENCE_LEVELS = [
   { value: "Staff/Principal", label: "Staff / Principal (8+ yrs)" },
 ];
 
-const DURATIONS = [
+const ALL_DURATIONS = [
   { value: "5", label: "5 minutes — Quick Screen" },
   { value: "10", label: "10 minutes — Standard" },
   { value: "15", label: "15 minutes — Extended" },
@@ -52,7 +53,14 @@ export default function SetupPage() {
     }
   }, [user]);
 
-  if (!loading && !user) return <Navigate to="/signin" replace />;
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/signin", { replace: true });
+    }
+  }, [loading, user, navigate]);
+
+  const maxDuration = subscription?.maxDurationMinutes ?? 15;
+  const DURATIONS = ALL_DURATIONS.filter((d) => parseInt(d.value) <= maxDuration);
 
   const remaining = subscription?.interviewsRemaining ?? 0;
   const overLimit = !subLoading && subscription && remaining <= 0;
@@ -83,7 +91,7 @@ export default function SetupPage() {
             <Link to={user ? '/dashboard' : '/'} data-testid="setup-nav-logo">
               <VoxaLogo size={28} />
             </Link>
-            <div className="hidden md:block h-5 w-px bg-white" />
+            <div className="hidden md:block h-5 w-px bg-white/10" />
             <div className="hidden md:block label-overline">Setup</div>
           </>
         }
@@ -189,8 +197,30 @@ export default function SetupPage() {
                   </Button>
                 ) : overLimit ? (
                   <Button
-                    disabled
-                    className="h-12 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 px-6 text-sm font-semibold cursor-not-allowed"
+                    onClick={async () => {
+                      try {
+                        const { orderId, amount, currency, keyId, userEmail, userName } = await api.createOrder("starter");
+                        openRazorpayCheckout({
+                          keyId, orderId, amount, currency,
+                          name: "Voxa",
+                          description: "Starter Plan - ₹299/month",
+                          prefill: { name: userName, email: userEmail },
+                          onSuccess: async (response) => {
+                            try {
+                              await api.verifyPayment({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature,
+                              });
+                              toast.success("Subscribed! You can now start an interview.");
+                              window.location.reload();
+                            } catch { toast.error("Verification failed."); }
+                          },
+                          onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
+                        });
+                      } catch { toast.error("Failed to start payment."); }
+                    }}
+                    className="h-12 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 px-6 text-sm font-semibold hover:bg-amber-400/20"
                   >
                     <AlertTriangle className="mr-2 h-4 w-4" />
                     Upgrade to start

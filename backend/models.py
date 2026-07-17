@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Literal, Optional
 
 
@@ -66,6 +66,13 @@ class ConfigResponse(BaseModel):
 class SignUpRequest(BaseModel):
     email: str
     password: str
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError("Password must be at least 6 characters")
+        return v
 
 
 class SignInRequest(BaseModel):
@@ -148,18 +155,41 @@ class DashboardStats(BaseModel):
     skillAverages: dict
 
 
+PLAN_RANK = {"free": 0, "starter": 1, "pro": 2}
+
 PLAN_LIMITS = {
-    "free": {"interviews_allowed": 2, "price_monthly": 0},
-    "starter": {"interviews_allowed": 20, "price_monthly": 19},
-    "pro": {"interviews_allowed": 100, "price_monthly": 49},
+    "free": {
+        "interviews_allowed": 2,
+        "interviews_per_month": None,
+        "max_duration_minutes": 15,
+        "price_monthly": 0,
+        "price_inr": 0,
+        "has_analytics": False,
+        "has_learning_plan": False,
+        "lifetime": True,
+    },
+    "starter": {
+        "interviews_allowed": 10,
+        "interviews_per_month": 10,
+        "max_duration_minutes": 15,
+        "price_monthly": 299,
+        "price_inr": 29900,
+        "has_analytics": True,
+        "has_learning_plan": True,
+        "lifetime": False,
+    },
+    "pro": {
+        "interviews_allowed": 20,
+        "interviews_per_month": 20,
+        "max_duration_minutes": 30,
+        "price_monthly": 499,
+        "price_inr": 49900,
+        "has_analytics": True,
+        "has_learning_plan": True,
+        "free_priority": True,
+        "lifetime": False,
+    },
 }
-
-
-class PlanInfo(BaseModel):
-    id: str
-    name: str
-    interviewsAllowed: int
-    priceMonthly: int
 
 
 class SubscriptionResponse(BaseModel):
@@ -170,6 +200,10 @@ class SubscriptionResponse(BaseModel):
     status: str
     currentPeriodStart: Optional[str] = None
     currentPeriodEnd: Optional[str] = None
+    maxDurationMinutes: int = 15
+    hasAnalytics: bool = False
+    hasLearningPlan: bool = False
+    isLifetime: bool = True
 
 
 class SubscriptionUsageResponse(BaseModel):
@@ -177,3 +211,23 @@ class SubscriptionUsageResponse(BaseModel):
     interviewsUsed: int
     interviewsRemaining: int
     canStartInterview: bool
+
+
+class CreateOrderRequest(BaseModel):
+    planId: str
+
+
+class CreateOrderResponse(BaseModel):
+    orderId: str
+    amount: int
+    currency: str
+    keyId: str
+    planId: str
+    userEmail: str
+    userName: str
+
+
+class VerifyPaymentRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str

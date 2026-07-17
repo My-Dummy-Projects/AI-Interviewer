@@ -34,7 +34,8 @@ export function AuthProvider({ children }) {
           email: clerkUser.primaryEmailAddress?.emailAddress || profile.email,
           ...profile,
         });
-      } catch {
+      } catch (err) {
+        console.error("Profile fetch failed, using Clerk user data:", err);
         setUser({
           id: clerkUser.id,
           email: clerkUser.primaryEmailAddress?.emailAddress || "",

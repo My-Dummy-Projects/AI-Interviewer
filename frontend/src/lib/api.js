@@ -82,7 +82,21 @@ const api = {
     return data;
   },
 
-  // Feedback (with optional auth)
+  // Interview
+  async getPlanConfig() {
+    const { data } = await axios.get(`${API}/interview/plan-config`, {
+      headers: authHeaders(),
+    });
+    return data;
+  },
+
+  async validateSetup(payload) {
+    const { data } = await axios.post(`${API}/interview/validate-setup`, payload, {
+      headers: authHeaders(),
+    });
+    return data;
+  },
+
   async submitFeedback(payload) {
     const { data } = await axios.post(`${API}/interview/feedback`, payload, {
       headers: authHeaders(),
@@ -103,6 +117,32 @@ const api = {
     const { data } = await axios.get(`${API}/user/subscription`, {
       headers: authHeaders(),
     });
+    return data;
+  },
+
+  // Payments
+  async getPaymentConfig() {
+    const { data } = await axios.get(`${API}/payments/config`, {
+      headers: authHeaders(),
+    });
+    return data;
+  },
+
+  async createOrder(planId) {
+    const { data } = await axios.post(
+      `${API}/payments/create-order`,
+      { planId },
+      { headers: authHeaders() }
+    );
+    return data;
+  },
+
+  async verifyPayment(payload) {
+    const { data } = await axios.post(
+      `${API}/payments/verify-payment`,
+      payload,
+      { headers: authHeaders() }
+    );
     return data;
   },
 };
