@@ -464,16 +464,6 @@ export default function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/signin", { replace: true });
-      return;
-    }
-    if (user) {
-      Promise.all([loadProfile(), loadStats(), loadInterviews(), loadSubscription()]);
-    }
-  }, [user, authLoading, navigate, loadProfile, loadStats, loadInterviews, loadSubscription]);
-
   const loadProfile = useCallback(async () => {
     try {
       const data = await api.getProfile();
@@ -514,6 +504,16 @@ export default function DashboardPage() {
       /* non-critical */
     }
   }, []);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/signin", { replace: true });
+      return;
+    }
+    if (user) {
+      Promise.all([loadProfile(), loadStats(), loadInterviews(), loadSubscription()]);
+    }
+  }, [user, authLoading, navigate, loadProfile, loadStats, loadInterviews, loadSubscription]);
 
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
