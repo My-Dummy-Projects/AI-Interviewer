@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary, GlobalErrorHandler } from "@/components/ErrorBoundary";
 import { Toaster } from "sonner";
 import { InterviewProvider } from "@/context/InterviewContext";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
 const queryClient = new QueryClient({
@@ -33,6 +33,53 @@ const FeedbackPage = lazy(() => import("@/pages/FeedbackPage"));
 
 const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || "";
 
+function AppContent() {
+  const { loading } = useAuth();
+
+  return (
+    <InterviewProvider>
+      <BrowserRouter>
+        <ErrorBoundary>
+          <Suspense fallback={<LoadingScreen message="Loading..." />}>
+            {loading ? (
+              <LoadingScreen message="Loading Voxa..." submessage="Preparing your experience" />
+            ) : (
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/setup" element={<SetupPage />} />
+                <Route path="/interview" element={<InterviewPage />} />
+                <Route path="/report" element={<ReportPage />} />
+                <Route path="/report/:id" element={<ReportPage />} />
+                <Route path="/signin" element={<SignInPage />} />
+                <Route path="/signup" element={<SignUpPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/feedback" element={<FeedbackPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            )}
+          </Suspense>
+        </ErrorBoundary>
+      </BrowserRouter>
+      <Toaster
+        position="top-right"
+        theme="dark"
+        richColors
+        closeButton
+        toastOptions={{
+          style: {
+            background: "rgba(15, 15, 15, 0.95)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            color: "#fafafa",
+          },
+        }}
+      />
+    </InterviewProvider>
+  );
+}
+
 function App() {
   return (
     <div className="App">
@@ -46,42 +93,7 @@ function App() {
         signUpUrl="/signup"
       >
         <AuthProvider>
-          <InterviewProvider>
-            <BrowserRouter>
-              <ErrorBoundary>
-                <Suspense fallback={<LoadingScreen message="Loading..." />}>
-                  <Routes>
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/setup" element={<SetupPage />} />
-                    <Route path="/interview" element={<InterviewPage />} />
-                    <Route path="/report" element={<ReportPage />} />
-                    <Route path="/report/:id" element={<ReportPage />} />
-                    <Route path="/signin" element={<SignInPage />} />
-                    <Route path="/signup" element={<SignUpPage />} />
-                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                    <Route path="/reset-password" element={<ResetPasswordPage />} />
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/feedback" element={<FeedbackPage />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </Suspense>
-              </ErrorBoundary>
-            </BrowserRouter>
-            <Toaster
-              position="top-right"
-              theme="dark"
-              richColors
-              closeButton
-              toastOptions={{
-                style: {
-                  background: "rgba(15, 15, 15, 0.95)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  color: "#fafafa",
-                },
-              }}
-            />
-          </InterviewProvider>
+          <AppContent />
         </AuthProvider>
       </ClerkProvider>
       </QueryClientProvider>

@@ -1,7 +1,13 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Loader2, AudioLines, MessageSquare } from "lucide-react";
 
 export function LoadingScreen({ message = "Loading...", submessage, fullScreen = true }) {
+  useEffect(() => {
+    if (!fullScreen) return;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, [fullScreen]);
+
   const content = (
     <div className="flex flex-col items-center justify-center gap-6">
       {/* Animated orb */}
@@ -16,17 +22,17 @@ export function LoadingScreen({ message = "Loading...", submessage, fullScreen =
                 "radial-gradient(circle at 30% 30%, rgba(0,255,234,0.55), rgba(0,255,234,0.05) 70%)",
             }}
           />
-          <AudioLines className="absolute h-6 w-6 text-white opacity-60" strokeWidth={1.5} />
+          <AudioLines className="absolute h-6 w-6 text-white/60" strokeWidth={1.5} />
         </div>
       </div>
 
       {/* Message */}
       <div className="text-center">
-        <div className="font-mono text-xs tracking-[0.3em] uppercase text-zinc-400">
+        <div className="font-mono text-xs tracking-[0.3em] uppercase text-white/60">
           {message}
         </div>
         {submessage && (
-          <div className="mt-2 text-sm text-zinc-500 max-w-xs">{submessage}</div>
+          <div className="mt-2 text-sm text-white/40 max-w-xs">{submessage}</div>
         )}
       </div>
     </div>
@@ -35,7 +41,7 @@ export function LoadingScreen({ message = "Loading...", submessage, fullScreen =
   if (!fullScreen) return content;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050505]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]">
       <div className="ambient-glow" />
       {content}
     </div>
@@ -127,7 +133,7 @@ export function SkeletonReport({ message = "Generating your report..." }) {
         {/* Processing indicator */}
         <div className="flex items-center justify-center gap-3 pt-4 pb-10">
           <Loader2 className="h-4 w-4 animate-spin text-cyan-300" strokeWidth={1.5} />
-          <span className="text-xs font-mono uppercase tracking-widest text-zinc-500">
+          <span className="text-xs font-mono uppercase tracking-widest text-white/40">
             {message}
           </span>
         </div>

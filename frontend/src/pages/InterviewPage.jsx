@@ -7,7 +7,7 @@ import { useInterview } from "@/context/InterviewContext";
 import { getVapi, resetVapi } from "@/lib/vapiClient";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
-import { LoadingScreen, LoadingOverlay } from "@/components/LoadingScreen";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import api from "@/lib/api";
 import { useConfigQuery } from "@/hooks/useApiQueries";
 import { useAuth } from "@/context/AuthContext";
@@ -278,13 +278,17 @@ export default function InterviewPage() {
     );
   }
 
-  return (
-    <div className="relative min-h-screen bg-[#050505] text-white flex flex-col overflow-x-hidden">
-      <LoadingOverlay
-        show={submitting}
+  if (submitting) {
+    return (
+      <LoadingScreen
         message="Generating your report..."
         submessage="This may take up to 90 seconds"
       />
+    );
+  }
+
+  return (
+    <div className="relative min-h-screen bg-[#050505] text-white flex flex-col overflow-x-hidden">
       <div className="ambient-glow" />
 
       {/* Top bar */}
