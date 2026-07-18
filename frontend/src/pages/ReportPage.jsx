@@ -60,6 +60,7 @@ export default function ReportPage() {
   const { id } = useParams();
   const { report: ctxReport, setup: ctxSetup, reset } = useInterview();
   const [interviewData, setInterviewData] = useState(location.state?.interview || null);
+  const [paying, setPaying] = useState(false);
 
   const isHistorical = Boolean(id);
   const { data: fetchedInterview, isLoading: interviewLoading } = useInterviewQuery(id, isHistorical && !interviewData);
@@ -131,12 +132,14 @@ export default function ReportPage() {
       <Navbar
         left={
           <>
-            <Link to="/dashboard">
-              <VoxaLogo size={26} />
+            <Link to="/dashboard" data-testid="dashboard-nav-logo" className="shrink-0">
+              <VoxaLogo size={22} />
             </Link>
-            <div className="hidden md:block h-5 w-px bg-white/10" />
+            <div className="hidden md:block h-5 w-px bg-white" />
             <div className="hidden md:block label-overline">{isHistorical ? "Past Report" : "03 / Feedback Report"}</div>
+
           </>
+
         }
         right={
           <Button
@@ -235,10 +238,10 @@ export default function ReportPage() {
           </div>
 
           <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <ScoreCell label="Technical" value={report.skills.technical} />
-            <ScoreCell label="Communication" value={report.skills.communication} />
-            <ScoreCell label="Problem-Solving" value={report.skills.problemSolving} />
-            <ScoreCell label="Confidence" value={report.skills.confidence} />
+            <ScoreCell label="Technical" value={report.skills?.technical ?? 0} />
+            <ScoreCell label="Communication" value={report.skills?.communication ?? 0} />
+            <ScoreCell label="Problem-Solving" value={report.skills?.problemSolving ?? 0} />
+            <ScoreCell label="Confidence" value={report.skills?.confidence ?? 0} />
           </div>
         </section>
 
@@ -366,7 +369,10 @@ export default function ReportPage() {
               next steps, topic recommendations, and practice drills tailored to your performance.
             </p>
             <Button
+              disabled={paying}
               onClick={async () => {
+                if (paying) return;
+                setPaying(true);
                 try {
                   const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("starter");
                   openRazorpayCheckout({
@@ -383,11 +389,12 @@ export default function ReportPage() {
                         });
                         toast.success("Subscribed! Learning plan unlocked.");
                         window.location.reload();
-                      } catch { toast.error("Verification failed."); }
+                      } catch { toast.error("Verification failed — payment may be captured. Contact support."); }
                     },
                     onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
                   });
                 } catch { toast.error("Failed to start payment."); }
+                finally { setPaying(false); }
               }}
               className="mt-4 h-10 rounded-full bg-white hover:bg-zinc-200 text-black px-5 text-sm font-semibold"
             >

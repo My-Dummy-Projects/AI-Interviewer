@@ -49,16 +49,20 @@ async def create_order(req: CreateOrderRequest, current_user=Depends(get_current
         current_sub = sub_result.data[0] if sub_result.data else None
         current_plan = (current_sub or {}).get("plan", "free")
 
-        if current_plan == req.planId and (current_sub or {}).get("status") == "active":
-            raise HTTPException(status_code=400, detail=f"You are already on the {req.planId} plan.")
+        allowed_statuses = {"active", "expired", "cancelled"}
+        if current_plan == req.planId and (current_sub or {}).get("status") in allowed_statuses:
+            if (current_sub or {}).get("status") == "active":
+                raise HTTPException(status_code=400, detail=f"You are already on the {req.planId} plan.")
 
         client = _get_razorpay_client()
+
+        user_id_suffix = current_user.id[-6:] if len(current_user.id) >= 6 else current_user.id
         order = client.order.create({
             "amount": amount_in_paise,
             "currency": "INR",
-            "receipt": f"{req.planId[:4]}_{current_user.id[-6:]}_{int(time.time())}",
+            "receipt": f"{req.planId[:4]}_{user_id_suffix}_{int(time.time())}",
             "notes": {
-                "user_id": current_user.id,
+                "user_id": current_user.id or "",
                 "plan_id": req.planId,
                 "interviews_allowed": str(plan_config["interviews_allowed"]),
                 "current_plan": current_plan,
@@ -88,6 +92,8 @@ async def create_order(req: CreateOrderRequest, current_user=Depends(get_current
 
 @api_router_payments.post("/verify-payment")
 async def verify_payment(req: VerifyPaymentRequest, current_user=Depends(get_current_user)):
+    if not RAZORPAY_KEY_SECRET:
+        raise HTTPException(status_code=500, detail="Payment verification not configured")
     expected_signature = hmac.new(
         RAZORPAY_KEY_SECRET.encode(),
         f"{req.razorpay_order_id}|{req.razorpay_payment_id}".encode(),
@@ -104,6 +110,8 @@ async def verify_payment(req: VerifyPaymentRequest, current_user=Depends(get_cur
         plan_id = notes.get("plan_id", "free")
         current_plan = notes.get("current_plan", "free")
 
+        if not notes.get("user_id") or not current_user.id:
+            raise HTTPException(status_code=403, detail="Order does not belong to this user")
         if notes.get("user_id") != current_user.id:
             raise HTTPException(status_code=403, detail="Order does not belong to this user")
 
@@ -155,8 +163,8 @@ async def verify_payment(req: VerifyPaymentRequest, current_user=Depends(get_cur
 @api_router_payments.post("/webhook")
 async def razorpay_webhook(request: Request):
     if not RAZORPAY_WEBHOOK_SECRET:
-        logger.warning("Razorpay webhook secret not configured, skipping verification")
-        return JSONResponse(content={"status": "ignored"}, status_code=200)
+        logger.error("Razorpay webhook secret not configured — rejecting webhook")
+        raise HTTPException(status_code=503, detail="Webhook not configured")
 
     body = await request.body()
     signature = request.headers.get("x-razorpay-signature", "")

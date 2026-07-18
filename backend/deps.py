@@ -67,7 +67,10 @@ def normalize_user_id(user_id: str) -> str:
 async def get_current_user(authorization: Optional[str] = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
-    token = authorization.split(" ")[1]
+    parts = authorization.split(" ")
+    if len(parts) < 2 or not parts[1]:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    token = parts[1]
 
     user = _verify_with_clerk(token)
     if user:
@@ -83,7 +86,10 @@ async def get_current_user(authorization: Optional[str] = Header(None)):
 async def try_get_user(authorization: Optional[str] = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
         return None
-    token = authorization.split(" ")[1]
+    parts = authorization.split(" ")
+    if len(parts) < 2 or not parts[1]:
+        return None
+    token = parts[1]
 
     user = _verify_with_clerk(token)
     if user:

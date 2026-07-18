@@ -204,6 +204,13 @@ export default function InterviewPage() {
         }
 
         const vapi = getVapi(cfg.vapiPublicKey);
+        if (!vapi) {
+          if (!destroyed) {
+            setStatus("error");
+            setError("Voice API key is missing. Please check your configuration.");
+          }
+          return;
+        }
         vapiRef.current = vapi;
         currentVapi = vapi;
 

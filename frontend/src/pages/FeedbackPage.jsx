@@ -34,39 +34,36 @@ export default function FeedbackPage() {
     const [category, setCategory] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
-    useEffect(() => {
-        if (!authLoading && !user) {
-            navigate("/signin", { replace: true });
-        }
-    }, [authLoading, user, navigate]);
+  const submitToolFeedback = useSubmitToolFeedbackMutation();
 
-    const submitToolFeedback = useSubmitToolFeedbackMutation();
-
-    const handleSubmit = async () => {
-        if (!feedback.trim()) {
-            toast.error("Please enter your feedback before submitting.");
-            return;
-        }
-
-        setSubmitting(true);
-        try {
-            await submitToolFeedback.mutateAsync({
-                feedback: feedback.trim(),
-                rating,
-                category: category || "",
-            });
-            toast.success("Thanks for your feedback!");
-            navigate("/dashboard");
-        } catch (e) {
-            toast.error("Unable to submit feedback. Please try again.");
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    if (authLoading || (!user && !authLoading)) {
-        return <LoadingScreen message="Loading feedback page..." />;
+  const handleSubmit = async () => {
+    if (!feedback.trim()) {
+      toast.error("Please enter your feedback before submitting.");
+      return;
     }
+
+    setSubmitting(true);
+    try {
+      await submitToolFeedback.mutateAsync({
+        feedback: feedback.trim(),
+        rating,
+        category: category || "",
+      });
+      toast.success("Thanks for your feedback!");
+      navigate("/dashboard");
+    } catch (e) {
+      toast.error("Unable to submit feedback. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (authLoading) {
+    return <LoadingScreen message="Loading feedback page..." />;
+  }
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
 
     return (
         <div className="relative min-h-screen bg-[#050505] text-white overflow-x-hidden">

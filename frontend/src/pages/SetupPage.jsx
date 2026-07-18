@@ -43,16 +43,11 @@ export default function SetupPage() {
   const [jobRole, setJobRole] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
   const [duration, setDuration] = useState("");
+  const [paying, setPaying] = useState(false);
 
   const { data: subscription, isLoading: subLoading } = useSubscriptionQuery(!!user);
   const createOrder = useCreateOrderMutation();
   const verifyPayment = useVerifyPaymentMutation();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/signin", { replace: true });
-    }
-  }, [loading, user, navigate]);
 
   const maxDuration = subscription?.maxDurationMinutes ?? 15;
   const DURATIONS = ALL_DURATIONS.filter((d) => parseInt(d.value) <= maxDuration);
@@ -60,6 +55,13 @@ export default function SetupPage() {
   const remaining = subscription?.interviewsRemaining ?? 0;
   const overLimit = !subLoading && subscription && remaining <= 0;
   const canStart = !overLimit && jobRole.trim().length > 1 && experienceLevel && duration;
+
+  if (loading) {
+    return <LoadingScreen message="Loading setup..." />;
+  }
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
 
   const handleStart = () => {
     if (!canStart) return;
@@ -82,11 +84,10 @@ export default function SetupPage() {
       <Navbar
         left={
           <>
-
-            <Link to={user ? '/dashboard' : '/'} data-testid="setup-nav-logo">
-              <VoxaLogo size={28} />
+            <Link to="/dashboard" data-testid="dashboard-nav-logo" className="shrink-0">
+              <VoxaLogo size={22} />
             </Link>
-            <div className="hidden md:block h-5 w-px bg-white/10" />
+            <div className="hidden md:block h-5 w-px bg-white" />
             <div className="hidden md:block label-overline">Setup</div>
           </>
         }
@@ -191,34 +192,38 @@ export default function SetupPage() {
                     Checking...
                   </Button>
                 ) : overLimit ? (
-                    <Button
-                      onClick={async () => {
-                        try {
-                          const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("starter");
-                          openRazorpayCheckout({
-                            keyId, orderId, amount, currency,
-                            name: "Voxa",
-                            description: "Starter Plan - ₹299/month",
-                            prefill: { name: userName, email: userEmail },
-                            onSuccess: async (response) => {
-                              try {
-                                await verifyPayment.mutateAsync({
-                                  razorpay_order_id: response.razorpay_order_id,
-                                  razorpay_payment_id: response.razorpay_payment_id,
-                                  razorpay_signature: response.razorpay_signature,
-                                });
-                                toast.success("Subscribed! You can now start an interview.");
-                                window.location.reload();
-                              } catch { toast.error("Verification failed."); }
-                            },
-                            onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
-                          });
-                        } catch { toast.error("Failed to start payment."); }
-                      }}
-                      className="h-12 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 px-6 text-sm font-semibold hover:bg-amber-400/20"
-                    >
-                      Upgrade to start
-                    </Button>
+                  <Button
+                    disabled={paying}
+                    onClick={async () => {
+                      if (paying) return;
+                      setPaying(true);
+                      try {
+                        const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("starter");
+                        openRazorpayCheckout({
+                          keyId, orderId, amount, currency,
+                          name: "Voxa",
+                          description: "Starter Plan - ₹299/month",
+                          prefill: { name: userName, email: userEmail },
+                          onSuccess: async (response) => {
+                            try {
+                              await verifyPayment.mutateAsync({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature,
+                              });
+                              toast.success("Subscribed! You can now start an interview.");
+                              window.location.reload();
+                            } catch { toast.error("Verification failed — payment may be captured. Contact support."); }
+                          },
+                          onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
+                        });
+                      } catch { toast.error("Failed to start payment."); }
+                      finally { setPaying(false); }
+                    }}
+                    className="h-12 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 px-6 text-sm font-semibold hover:bg-amber-400/20"
+                  >
+                    Upgrade to start
+                  </Button>
                 ) : (
                   <Button
                     data-testid="start-interview-button"

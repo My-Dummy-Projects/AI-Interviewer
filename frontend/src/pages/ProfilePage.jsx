@@ -46,12 +46,6 @@ export default function ProfilePage() {
   const updateProfile = useUpdateProfileMutation();
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/signin", { replace: true });
-    }
-  }, [user, authLoading, navigate]);
-
-  useEffect(() => {
     if (profile) {
       setEditName(profile.display_name || "");
       setEditBio(profile.bio || "");
@@ -110,7 +104,14 @@ export default function ProfilePage() {
     }
   };
 
-  if (authLoading || profileLoading) {
+  if (authLoading) {
+    return <LoadingScreen message="Loading profile..." />;
+  }
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
+
+  if (profileLoading) {
     return <LoadingScreen message="Loading profile..." />;
   }
 

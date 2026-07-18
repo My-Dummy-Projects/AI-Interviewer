@@ -50,7 +50,9 @@ axios.interceptors.response.use(
           error.config.headers.Authorization = `Bearer ${token}`;
           return axios(error.config);
         }
-      } catch {}
+      } catch (e) {
+        console.warn("Token refresh failed:", e);
+      }
     }
     return Promise.reject(error);
   }

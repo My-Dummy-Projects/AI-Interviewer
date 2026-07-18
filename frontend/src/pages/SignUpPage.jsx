@@ -57,6 +57,17 @@ export default function SignUpPage() {
   };
 
   const handleOtpChange = (index, value) => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length > 1) {
+      const newOtp = [...otp];
+      for (let i = 0; i < 6; i++) {
+        newOtp[i] = digits[i] || "";
+      }
+      setOtp(newOtp);
+      const next = Math.min(digits.length, 5);
+      otpRefs.current[next]?.focus();
+      return;
+    }
     if (!/^\d*$/.test(value)) return;
     const newOtp = [...otp];
     newOtp[index] = value.slice(-1);
@@ -64,6 +75,20 @@ export default function SignUpPage() {
     if (value && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData || window.clipboardData).getData("text");
+    const digits = pasted.replace(/\D/g, "").slice(0, 6);
+    if (!digits) return;
+    const newOtp = [...otp];
+    for (let i = 0; i < 6; i++) {
+      newOtp[i] = digits[i] || "";
+    }
+    setOtp(newOtp);
+    const next = Math.min(digits.length, 5);
+    otpRefs.current[next]?.focus();
   };
 
   const handleOtpKeyDown = (index, e) => {
@@ -190,6 +215,7 @@ export default function SignUpPage() {
                       value={digit}
                       onChange={(e) => handleOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                      onPaste={handleOtpPaste}
                       className="h-14 w-12 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-center text-xl font-semibold text-white"
                       autoFocus={i === 0}
                     />

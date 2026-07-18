@@ -154,7 +154,8 @@ async def get_profile(current_user=Depends(get_current_user)):
 
     if not profile:
         name = getattr(current_user, "name", "") or ""
-        display_name = name or (email.split("@")[0] if email else f"User_{user_id[:8]}")
+        email_part = email.split("@")[0] if email else ""
+        display_name = name or (email_part if email_part else f"User_{user_id[:8]}")
         normalized = normalize_user_id(user_id)
         supabase.table("user_profiles").insert({
             "user_id": normalized,
@@ -168,15 +169,17 @@ async def get_profile(current_user=Depends(get_current_user)):
     elif user_id and profile.get("user_id") != user_id:
         try:
             normalized = normalize_user_id(user_id)
-            supabase.table("user_profiles").update({"user_id": normalized}).eq("email", email).execute()
-        except Exception:
-            pass
+            supabase.table("user_profiles").update({"user_id": normalized}).eq("id", profile["id"]).execute()
+        except Exception as e:
+            logger.error(f"Profile user_id update failed for {user_id}: {e}")
 
+    user_email = profile.get("email", "") or (current_user.email or "")
+    email_name = user_email.split("@")[0] if user_email else ""
     return UserProfileResponse(
         id=profile["id"],
         user_id=profile.get("user_id", user_id),
-        email=profile.get("email", current_user.email),
-        display_name=profile.get("display_name", current_user.email.split("@")[0]),
+        email=profile.get("email", current_user.email or ""),
+        display_name=profile.get("display_name", email_name),
         avatar_url=profile.get("avatar_url", ""),
         bio=profile.get("bio", ""),
         created_at=str(profile.get("created_at", "")),
@@ -197,12 +200,13 @@ async def update_profile(req: UserProfileUpdate, current_user=Depends(get_curren
         supabase.table("user_profiles").update(update_data).eq("user_id", user_id).execute()
     else:
         update_data["user_id"] = user_id
-        update_data["email"] = current_user.email
-        update_data.setdefault("display_name", current_user.email.split("@")[0])
+        update_data["email"] = current_user.email or ""
+        user_email = current_user.email or ""
+        update_data.setdefault("display_name", user_email.split("@")[0] if user_email else "User")
         supabase.table("user_profiles").insert(update_data).execute()
 
     result = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
-    profile = result.data[0]
+    profile = (result.data or [{}])[0]
     return UserProfileResponse(
         id=profile["id"],
         user_id=profile.get("user_id", user_id),

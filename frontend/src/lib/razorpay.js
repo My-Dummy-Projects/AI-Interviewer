@@ -47,7 +47,7 @@ export async function openRazorpayCheckout({
     amount,
     currency,
     name,
-    description: description || `Voxa ${currency} ${(amount / 100).toFixed(0)}`,
+    description: description || `Voxa ${currency} ${typeof amount === "number" ? (amount / 100).toFixed(0) : "0"}`,
     order_id: orderId,
     prefill: {
       name: prefill.name || "",
@@ -56,7 +56,12 @@ export async function openRazorpayCheckout({
     },
     theme: { color: "#22d3ee" },
     handler(response) {
-      onSuccess?.(response);
+      try {
+        onSuccess?.(response);
+      } catch (e) {
+        console.error("Payment success handler failed:", e);
+        onError?.("Payment verification failed. Please contact support.");
+      }
     },
     modal: {
       ondismiss() {
