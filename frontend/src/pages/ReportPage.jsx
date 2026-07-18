@@ -132,12 +132,14 @@ export default function ReportPage() {
       <Navbar
         left={
           <>
-            <Link to="/dashboard">
-              <VoxaLogo size={26} />
+            <Link to="/dashboard" data-testid="dashboard-nav-logo" className="shrink-0">
+              <VoxaLogo size={22} />
             </Link>
-            <div className="hidden md:block h-5 w-px bg-white/10" />
+            <div className="hidden md:block h-5 w-px bg-white" />
             <div className="hidden md:block label-overline">{isHistorical ? "Past Report" : "03 / Feedback Report"}</div>
+
           </>
+
         }
         right={
           <Button

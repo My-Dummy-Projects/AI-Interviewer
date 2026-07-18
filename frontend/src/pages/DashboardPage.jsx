@@ -91,6 +91,24 @@ function pct(a, b) {
   return Math.min(Math.round((a / b) * 100), 100);
 }
 
+const AnimatedNumber = React.memo(function AnimatedNumber({ value, enabled = true }) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (!enabled || typeof value !== 'number') { setDisplay(value); return; }
+    let raf;
+    const start = performance.now();
+    const dur = 1000;
+    const fn = (now) => {
+      const p = Math.min((now - start) / dur, 1);
+      setDisplay(Math.round(value * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(fn);
+    };
+    raf = requestAnimationFrame(fn);
+    return () => cancelAnimationFrame(raf);
+  }, [value, enabled]);
+  return <>{typeof value === 'number' ? display : value}</>;
+});
+
 /** Monday-based ISO week start (00:00 local) */
 function startOfWeek(d = new Date()) {
   const date = new Date(d);
@@ -561,16 +579,13 @@ export default function DashboardPage() {
   if (!user) {
     return <Navigate to="/signin" replace />;
   }
-
   return (
     <div className="relative min-h-screen bg-[#050505] text-white overflow-x-hidden">
-      {/* ─── decorative background ─── */}
       <div className="absolute inset-0 grid-bg opacity-30 pointer-events-none" />
       <div className="ambient-glow" />
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-cyan-500/[0.04] rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute top-40 right-0 w-[500px] h-[500px] bg-emerald-500/[0.03] rounded-full blur-[120px] pointer-events-none" />
 
-      {/* ─── header ─── */}
       <Navbar
         left={
           <>
@@ -590,7 +605,7 @@ export default function DashboardPage() {
               <div className="h-7 w-7 rounded-full bg-gradient-to-br from-cyan-400 to-emerald-400 flex items-center justify-center text-xs font-bold text-black shrink-0">
                 {profile?.display_name?.charAt(0)?.toUpperCase() || "U"}
               </div>
-              <span className="text-md text-zinc-400 group-hover:text-white transition-colors max-w-[140px] truncate font-medium">
+              <span className="text-sm text-zinc-400 group-hover:text-white transition-colors max-w-[140px] truncate font-medium">
                 {profile?.display_name || "User"}
               </span>
             </Link>
@@ -605,7 +620,7 @@ export default function DashboardPage() {
               onClick={() => setShowLogoutModal(true)}
               disabled={signingOut}
               aria-label="Sign out"
-              className="h-10 w-10 rounded-full border border-white/10 hover:bg-red-500/10 hover:border-red-400/30 text-zinc-500 hover:text-red-300 flex items-center justify-center transition-all disabled:opacity-40"
+              className="h-10 w-10 rounded-full border border-white/10 hover:bg-red-500/10 hover:border-red-400/30 flex items-center justify-center transition-all disabled:opacity-40"
             >
               <LogOut className="h-5 w-5" strokeWidth={1.5} />
             </button>
@@ -614,619 +629,373 @@ export default function DashboardPage() {
       />
 
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 z-10">
-        {/* ─── hero row: welcome (2/3) + weekly goal (1/3) ─── */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 mb-8 sm:mb-10">
-          {/* Welcome hero card */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="lg:col-span-2 relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 sm:p-8"
-          >
-            {/* animated mesh */}
-            <div className="absolute -top-24 -right-24 w-72 h-72 bg-cyan-400/10 rounded-full blur-3xl" />
-            <div className="absolute -bottom-32 -left-24 w-72 h-72 bg-emerald-400/[0.06] rounded-full blur-3xl" />
-
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] font-mono tracking-[0.25em] uppercase text-cyan-300/80">
-                  {greeting}
-                </span>
-                <div className="h-px flex-1 bg-gradient-to-r from-cyan-400/30 to-transparent max-w-[80px]" />
-              </div>
-
+        {/* ═══════════ HERO — full width ═══════════ */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-10 sm:mb-14"
+        >
+          <div className="flex flex-col lg:flex-row lg:items-stretch lg:justify-between gap-8">
+            {/* Left: greeting + heading + subtitle */}
+            <div className="max-w-2xl">
+              <motion.span
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold tracking-wider text-cyan-300/90"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                {greeting}
+              </motion.span>
               <h1
-                className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter text-white leading-[1.05]"
+                className="mt-2 text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.9]"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
-                {profile?.display_name ? profile.display_name : "Ready to level up"}
+                {profile?.display_name || "Ready to level up"}
                 <span className="text-cyan-300">.</span>
               </h1>
-
-              <p className="mt-3 text-sm sm:text-base text-zinc-400 max-w-lg leading-relaxed">
+              <p className="mt-4 text-base sm:text-lg text-zinc-400 leading-relaxed max-w-lg">
                 {hasData
-                  ? "Every interview sharpens your edge. Review your progress and jump into your next practice session."
-                  : "Your first interview is a few clicks away. Complete one to unlock stats, scores, and personalized progress tracking."}
+                  ? "Every interview sharpens your edge. Jump into your next practice session."
+                  : "Your first interview is a few clicks away. Complete one to unlock stats and tracking."}
               </p>
-
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                {subscription && subscription.interviewsRemaining <= 0 ? (
-                  <Button
-                    disabled
-                    className="rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25 h-11 px-6 text-sm font-semibold cursor-not-allowed"
-                    title="You have no remaining interviews. Upgrade to continue."
-                  >
-                    <AlertTriangle className="mr-2 h-4 w-4" />
-                    Upgrade to continue
-                  </Button>
-                ) : (
-                  <Link to="/setup">
-                    <Button
-                      data-testid="dashboard-start-cta"
-                      className="rounded-full bg-white hover:bg-zinc-200 text-black h-11 px-6 text-sm font-semibold shadow-lg shadow-white/5 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-                    >
-                      <Play className="mr-2 h-4 w-4" strokeWidth={2.5} />
-                      Start new interview
-                    </Button>
-                  </Link>
-                )}
-                {hasData && (
-                  <div className="flex items-center gap-4 text-[11px] text-zinc-500 font-mono ml-1">
-                    <span className="flex items-center gap-1.5">
-                      <Flame className="h-3.5 w-3.5 text-orange-400" strokeWidth={2} />
-                      <span className="text-white font-semibold">{Math.min(stats?.totalInterviews ?? 0, 5)}</span> streak
-                    </span>
-                    <span className="text-white/20">·</span>
-                    <span className="flex items-center gap-1.5">
-                      <Star className="h-3.5 w-3.5 text-amber-300" strokeWidth={2} />
-                      best <span className="text-white font-semibold">{stats.bestScore}</span>
-                    </span>
-                  </div>
-                )}
-              </div>
             </div>
-          </motion.div>
 
-          {/* Weekly goal card */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.08 }}
-            className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-5 sm:p-6"
-          >
-            <div className="absolute -top-16 -right-16 w-48 h-48 bg-emerald-400/10 rounded-full blur-3xl" />
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="text-[10px] font-mono tracking-[0.25em] uppercase text-zinc-500">
-                    Weekly Goal
-                  </div>
-                  <h3
-                    className="mt-1 text-lg font-bold text-white"
-                    style={{ fontFamily: "var(--font-heading)" }}
-                  >
-                    Practice streak
-                  </h3>
-                </div>
-                <button
-                  data-testid="dashboard-edit-goal-btn"
-                  onClick={() => setEditingGoal((v) => !v)}
-                  className="h-7 w-7 rounded-full border border-white/10 hover:border-white/25 hover:bg-white/5 text-zinc-400 hover:text-white flex items-center justify-center transition-all"
-                  aria-label="Edit weekly goal"
-                >
-                  <Pencil className="h-3 w-3" strokeWidth={2} />
-                </button>
-              </div>
-
-              <div className="flex-1 flex items-center justify-center py-2">
-                <ProgressRing value={weekAggregates.thisWeek} max={weeklyGoal}>
-                  <div className="flex flex-col items-center leading-none">
-                    <div className="text-2xl font-black text-white">
-                      {weekAggregates.thisWeek}
-                      <span className="text-zinc-600 text-sm font-bold">/{weeklyGoal}</span>
-                    </div>
-                    <div className="mt-1 text-[9px] font-mono tracking-widest uppercase text-zinc-500">
-                      this week
-                    </div>
-                  </div>
-                </ProgressRing>
-              </div>
-
-              <AnimatePresence>
-                {editingGoal && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="flex items-center gap-2 pt-3 border-t border-white/5 mt-2">
+            {/* Right: unified panel — streak + plan + stats */}
+            <div className="flex flex-col shrink-0 lg:min-w-[280px] lg:max-w-[320px]">
+              <motion.div
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.15 }}
+                className="rounded-xl border border-white/[0.06] bg-[#0a0a0a] overflow-hidden"
+              >
+                {/* ── Practice streak ── */}
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <ProgressRing value={weekAggregates.thisWeek} max={weeklyGoal} size={36} stroke={3}>
+                    <div className="text-[10px] font-black text-white leading-none">{weekAggregates.thisWeek}</div>
+                  </ProgressRing>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-white" style={{ fontFamily: "var(--font-heading)" }}>Practice streak</span>
                       <button
-                        onClick={() => persistGoal(weeklyGoal - 1)}
-                        className="h-8 w-8 rounded-lg border border-white/10 hover:border-white/25 hover:bg-white/5 text-white flex items-center justify-center transition-all disabled:opacity-30"
-                        disabled={weeklyGoal <= 1}
-                        aria-label="Decrease weekly goal"
-                        data-testid="dashboard-goal-decrement"
+                        data-testid="dashboard-edit-goal-btn"
+                        onClick={() => setEditingGoal((v) => !v)}
+                        className="h-4 w-4 rounded hover:bg-white/5 flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-all"
+                        aria-label="Edit weekly goal"
                       >
-                        <Minus className="h-3.5 w-3.5" strokeWidth={2} />
+                        <Pencil className="h-2 w-2" strokeWidth={2} />
                       </button>
-                      <div className="flex-1 text-center">
-                        <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                          Target
-                        </div>
-                        <div className="text-lg font-bold text-white">
-                          {weeklyGoal}
-                          <span className="text-xs text-zinc-500 ml-1">/wk</span>
+                    </div>
+                    <div className="text-xs text-zinc-500 mt-0.5">
+                      <span className="text-white font-semibold">{weekAggregates.thisWeek}</span>/{weeklyGoal} this week
+                      {weekAggregates.lastWeek > 0 && <span className="text-zinc-600"> &middot; {weekAggregates.lastWeek} last week</span>}
+                    </div>
+                    <AnimatePresence>
+                      {editingGoal && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-1 overflow-hidden mt-1.5">
+                          <button onClick={() => persistGoal(weeklyGoal - 1)} className="h-5 w-5 rounded border border-white/10 hover:bg-white/5 flex items-center justify-center text-white disabled:opacity-30" disabled={weeklyGoal <= 1} aria-label="Decrease" data-testid="dashboard-goal-decrement">
+                            <Minus className="h-2 w-2" strokeWidth={2} />
+                          </button>
+                          <span className="text-xs font-semibold text-white min-w-[16px] text-center">{weeklyGoal}</span>
+                          <button onClick={() => persistGoal(weeklyGoal + 1)} className="h-5 w-5 rounded border border-white/10 hover:bg-white/5 flex items-center justify-center text-white disabled:opacity-30" disabled={weeklyGoal >= 20} aria-label="Increase" data-testid="dashboard-goal-increment">
+                            <Plus className="h-2 w-2" strokeWidth={2} />
+                          </button>
+                          <button onClick={() => setEditingGoal(false)} className="h-5 px-2 rounded bg-white text-black text-[9px] font-semibold flex items-center gap-1 hover:bg-zinc-200 transition-all" data-testid="dashboard-goal-save">
+                            <Check className="h-2 w-2" strokeWidth={2.5} />Set
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                <div className="h-px bg-white/[0.06]" />
+
+                {/* ── Subscription plan + upgrade ── */}
+                {subscription && (
+                  <div className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-7 w-7 rounded-lg bg-white/[0.03] flex items-center justify-center shrink-0">
+                        <CreditCard className="h-3 w-3 text-zinc-400" strokeWidth={1.5} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold text-white capitalize leading-tight" style={{ fontFamily: "var(--font-heading)" }}>{subscription.plan} plan</div>
+                        <div className="text-xs text-zinc-500 mt-0.5">
+                          {subscription.interviewsRemaining > 0
+                            ? `${subscription.interviewsRemaining} interview${subscription.interviewsRemaining > 1 ? "s" : ""} remaining`
+                            : subscription.interviewsRemaining === 0
+                              ? "No interviews left"
+                              : `${subscription.interviewsUsed} used`}
+                          {subscription.currentPeriodEnd
+                            ? ` · resets ${new Date(subscription.currentPeriodEnd).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
+                            : subscription.isLifetime
+                              ? " · lifetime"
+                              : ""}
                         </div>
                       </div>
-                      <button
-                        onClick={() => persistGoal(weeklyGoal + 1)}
-                        className="h-8 w-8 rounded-lg border border-white/10 hover:border-white/25 hover:bg-white/5 text-white flex items-center justify-center transition-all disabled:opacity-30"
-                        disabled={weeklyGoal >= 20}
-                        aria-label="Increase weekly goal"
-                        data-testid="dashboard-goal-increment"
-                      >
-                        <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-                      </button>
                     </div>
-                    <button
-                      onClick={() => setEditingGoal(false)}
-                      className="mt-2 w-full h-8 rounded-lg bg-white text-black text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-zinc-200 transition-all"
-                      data-testid="dashboard-goal-save"
-                    >
-                      <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
-                      Set goal
-                    </button>
-                  </motion.div>
+                    {/* Progress bar */}
+                    {subscription.interviewsAllowed > 0 && (
+                      <div className="mt-2.5 h-2 rounded-full bg-white/5 overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(pct(subscription.interviewsUsed, subscription.interviewsAllowed), 100)}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Upgrade CTA — inside subscription card */}
+                    {subscription.plan === "free" && (
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.06]">
+                        <span className="text-xs text-zinc-500 font-medium shrink-0">Upgrade:</span>
+                        <div className="flex gap-1.5 flex-1">
+                          <Button disabled={paying} onClick={async () => { if (paying) return; setPaying(true); try { const r = await createOrder.mutateAsync("starter"); openRazorpayCheckout({ keyId: r.keyId, orderId: r.orderId, amount: r.amount, currency: r.currency, name: "Voxa", description: "Starter Plan - ₹299/month", prefill: { name: r.userName, email: r.userEmail }, onSuccess: async (res) => { try { await verifyPayment.mutateAsync({ razorpay_order_id: res.razorpay_order_id, razorpay_payment_id: res.razorpay_payment_id, razorpay_signature: res.razorpay_signature }); toast.success("Subscribed to Starter!"); window.location.reload(); } catch { toast.error("Verification failed."); } }, onError: (m) => { if (m !== "Payment cancelled") toast.error(m); } }); } catch { toast.error("Failed."); } finally { setPaying(false); } }} className="h-7 rounded-full border border-white/15 hover:bg-white/5 text-white text-xs font-medium px-3 transition-all flex-1">
+                            Starter ₹299
+                          </Button>
+                          <Button disabled={paying} onClick={async () => { if (paying) return; setPaying(true); try { const r = await createOrder.mutateAsync("pro"); openRazorpayCheckout({ keyId: r.keyId, orderId: r.orderId, amount: r.amount, currency: r.currency, name: "Voxa", description: "Pro Plan - ₹499/month", prefill: { name: r.userName, email: r.userEmail }, onSuccess: async (res) => { try { await verifyPayment.mutateAsync({ razorpay_order_id: res.razorpay_order_id, razorpay_payment_id: res.razorpay_payment_id, razorpay_signature: res.razorpay_signature }); toast.success("Subscribed to Pro!"); window.location.reload(); } catch { toast.error("Verification failed."); } }, onError: (m) => { if (m !== "Payment cancelled") toast.error(m); } }); } catch { toast.error("Failed."); } finally { setPaying(false); } }} className="h-7 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-3 transition-all flex-1">
+                            Pro ₹499
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {subscription.plan === "starter" && (
+                      <div className="mt-3 pt-3 border-t border-white/[0.06]">
+                        <Button disabled={paying} onClick={async () => { if (paying) return; setPaying(true); try { const r = await createOrder.mutateAsync("pro"); openRazorpayCheckout({ keyId: r.keyId, orderId: r.orderId, amount: r.amount, currency: r.currency, name: "Voxa", description: "Pro Plan - ₹499/month", prefill: { name: r.userName, email: r.userEmail }, onSuccess: async (res) => { try { await verifyPayment.mutateAsync({ razorpay_order_id: res.razorpay_order_id, razorpay_payment_id: res.razorpay_payment_id, razorpay_signature: res.razorpay_signature }); toast.success("Upgraded to Pro!"); window.location.reload(); } catch { toast.error("Verification failed."); } }, onError: (m) => { if (m !== "Payment cancelled") toast.error(m); } }); } catch { toast.error("Failed."); } finally { setPaying(false); } }} className="h-8 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-5 transition-all w-full">
+                          Upgrade to Pro &rarr;
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 )}
-              </AnimatePresence>
 
-              {!editingGoal && (
-                <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[11px]">
-                  <span className="text-zinc-500">Last week</span>
-                  <span className="text-zinc-300 font-mono">
-                    {weekAggregates.lastWeek} completed
-                  </span>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </section>
-
-        {/* ─── subscription plan ─── */}
-        {subscription && (
-          <motion.section
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.12 }}
-            className="mb-4 sm:mb-5"
-          >
-            <div className="rounded-2xl border border-white/[0.06] bg-[#0a0a0a] p-5 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-400/20 to-emerald-400/20 border border-cyan-400/20 flex items-center justify-center shrink-0">
-                    <CreditCard className="h-5 w-5 text-cyan-300" strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-mono tracking-[0.25em] uppercase text-zinc-500">Plan</p>
-                    <h3 className="mt-0.5 text-base font-semibold text-white capitalize">{subscription.plan}</h3>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                  <div>
-                    <span className="text-zinc-500 text-xs">Used</span>
-                    <p className="text-white font-semibold mt-0.5">
-                      {subscription.interviewsUsed}
-                      <span className="text-zinc-500 font-normal"> / {subscription.interviewsAllowed}</span>
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 text-xs">Remaining</span>
-                    <p className={`font-semibold mt-0.5 ${subscription.interviewsRemaining <= 1 ? "text-red-400" : "text-emerald-400"}`}>
-                      {subscription.interviewsRemaining}
-                    </p>
-                  </div>
-                  {subscription.interviewsRemaining <= 2 && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-xs text-amber-300">
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                      {subscription.interviewsRemaining === 0 ? "No interviews left" : "Low on interviews"}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500">
-                {subscription.isLifetime ? (
-                  <span>Lifetime access · never expires</span>
-                ) : subscription.currentPeriodEnd ? (
-                  <span>Resets on {new Date(subscription.currentPeriodEnd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
-                ) : null}
-                <span>Max {subscription.maxDurationMinutes} min per interview</span>
-              </div>
-              {subscription.plan === "free" ? (
-                <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
-                  <p className="text-xs text-zinc-500">
-                    <ShieldCheck className="h-3.5 w-3.5 inline mr-1 text-cyan-400" />
-                    Upgrade to unlock more interviews and features.
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      disabled={paying}
-                      onClick={async () => {
-                        if (paying) return;
-                        setPaying(true);
-                        try {
-                          const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("starter");
-                          openRazorpayCheckout({
-                            keyId, orderId, amount, currency,
-                            name: "Voxa",
-                            description: "Starter Plan - ₹299/month",
-                            prefill: { name: userName, email: userEmail },
-                            onSuccess: async (response) => {
-                              try {
-                                await verifyPayment.mutateAsync({
-                                  razorpay_order_id: response.razorpay_order_id,
-                                  razorpay_payment_id: response.razorpay_payment_id,
-                                  razorpay_signature: response.razorpay_signature,
-                                });
-                                toast.success("Subscribed to Starter plan!");
-                                window.location.reload();
-                              } catch { toast.error("Verification failed — payment may be captured. Contact support."); }
-                            },
-                            onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
-                          });
-                        } catch { toast.error("Failed to start payment."); }
-                        finally { setPaying(false); }
-                      }}
-                      className="h-9 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-4"
-                    >
-                      Starter ₹299
-                    </Button>
-                    <Button
-                      disabled={paying}
-                      onClick={async () => {
-                        if (paying) return;
-                        setPaying(true);
-                        try {
-                          const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("pro");
-                          openRazorpayCheckout({
-                            keyId, orderId, amount, currency,
-                            name: "Voxa",
-                            description: "Pro Plan - ₹499/month",
-                            prefill: { name: userName, email: userEmail },
-                            onSuccess: async (response) => {
-                              try {
-                                await verifyPayment.mutateAsync({
-                                  razorpay_order_id: response.razorpay_order_id,
-                                  razorpay_payment_id: response.razorpay_payment_id,
-                                  razorpay_signature: response.razorpay_signature,
-                                });
-                                toast.success("Subscribed to Pro plan!");
-                                window.location.reload();
-                              } catch { toast.error("Verification failed — payment may be captured. Contact support."); }
-                            },
-                            onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
-                          });
-                        } catch { toast.error("Failed to start payment."); }
-                        finally { setPaying(false); }
-                      }}
-                      className="h-9 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-4 shadow-lg shadow-white/5 hover:shadow-xl"
-                    >
-                      Pro ₹499
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
-                  <p className="text-xs text-zinc-500">
-                    <ShieldCheck className="h-3.5 w-3.5 inline mr-1 text-cyan-400" />
-                    You are on the <span className="text-white capitalize">{subscription.plan}</span> plan.
-                  </p>
-                  {subscription.plan === "starter" && (
-                    <Button
-                      disabled={paying}
-                      onClick={async () => {
-                        if (paying) return;
-                        setPaying(true);
-                        try {
-                          const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("pro");
-                          openRazorpayCheckout({
-                            keyId, orderId, amount, currency,
-                            name: "Voxa",
-                            description: "Pro Plan - ₹499/month",
-                            prefill: { name: userName, email: userEmail },
-                            onSuccess: async (response) => {
-                              try {
-                                await verifyPayment.mutateAsync({
-                                  razorpay_order_id: response.razorpay_order_id,
-                                  razorpay_payment_id: response.razorpay_payment_id,
-                                  razorpay_signature: response.razorpay_signature,
-                                });
-                                toast.success("Upgraded to Pro plan!");
-                                window.location.reload();
-                              } catch { toast.error("Verification failed — payment may be captured. Contact support."); }
-                            },
-                            onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
-                          });
-                        } catch { toast.error("Failed to start payment."); }
-                        finally { setPaying(false); }
-                      }}
-                      className="h-9 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-4"
-                    >
-                      Upgrade to Pro
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          </motion.section>
-        )}
-
-        {/* ─── stats grid ─── */}
-
-        {/* ─── stats grid ─── */}
-        {hasData && (
-          <motion.section
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 sm:mb-10"
-          >
-            {[
-              {
-                icon: Target,
-                value: stats.totalInterviews,
-                label: "Total Interviews",
-                iconBg: "bg-cyan-400/10",
-                iconColor: "text-cyan-300",
-                delta: weekAggregates.thisWeek - weekAggregates.lastWeek,
-                deltaLabel: "vs last week",
-              },
-              {
-                icon: TrendingUp,
-                value: stats.averageScore,
-                label: "Average Score",
-                iconBg: "bg-emerald-400/10",
-                iconColor: "text-emerald-300",
-                accent: "text-cyan-300",
-              },
-              {
-                icon: Award,
-                value: stats.bestScore,
-                label: "Best Score",
-                iconBg: "bg-amber-400/10",
-                iconColor: "text-amber-300",
-                accent: "text-emerald-400",
-              },
-              {
-                icon: Timer,
-                value: `${stats.totalPracticeMinutes}m`,
-                label: "Practice Time",
-                iconBg: "bg-purple-400/10",
-                iconColor: "text-purple-300",
-              },
-            ].map(({ icon: Icon, value, label, iconBg, iconColor, accent, delta, deltaLabel }, i) => (
-              <motion.div
-                key={label}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.12 + i * 0.05 }}
-                className="group relative rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-4 sm:p-5 hover:border-white/20 transition-all duration-300 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`h-8 w-8 rounded-lg ${iconBg} border border-white/5 flex items-center justify-center`}>
-                      <Icon className={`h-4 w-4 ${iconColor}`} strokeWidth={1.5} />
-                    </div>
-                    {typeof delta === "number" && delta !== 0 && (
-                      <span
-                        className={`inline-flex items-center gap-0.5 text-[10px] font-mono font-bold ${delta > 0 ? "text-emerald-400" : "text-red-400"
-                          }`}
-                      >
-                        {delta > 0 ? (
-                          <TrendingUp className="h-3 w-3" strokeWidth={2} />
-                        ) : (
-                          <TrendingDown className="h-3 w-3" strokeWidth={2} />
-                        )}
-                        {delta > 0 ? "+" : ""}
-                        {delta}
+                {/* ── Streak & best score stats row ── */}
+                {hasData && (
+                  <>
+                    <div className="h-px bg-white/[0.06]" />
+                    <div className="flex items-center justify-between px-4 py-2.5">
+                      <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+                        <Flame className="h-3.5 w-3.5 text-orange-400" strokeWidth={2} fill="currentColor" />
+                        <span className="text-white font-semibold"><AnimatedNumber value={Math.min(stats?.totalInterviews ?? 0, 5)} enabled={hasData} /></span> day streak
                       </span>
-                    )}
-                  </div>
-                  <div className={`text-2xl sm:text-3xl font-black tracking-tight ${accent || "text-white"}`}>
-                    {value}
-                  </div>
-                  <div className="mt-1 flex items-center justify-between">
-                    <div className="text-[10px] font-mono tracking-widest uppercase text-zinc-600">
-                      {label}
+                      <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+                        <Star className="h-3.5 w-3.5 text-amber-300" strokeWidth={2} fill="currentColor" />
+                        Best <span className="text-white font-bold">{stats.bestScore}</span>
+                      </span>
                     </div>
-                    {deltaLabel && typeof delta === "number" && delta !== 0 && (
-                      <div className="text-[9px] font-mono text-zinc-600">{deltaLabel}</div>
+                  </>
+                )}
+              </motion.div>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* ═══════════ CTA — start interview ═══════════ */}
+        <motion.section
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.12 }}
+          className="mb-10 sm:mb-14"
+        >
+          <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0a0a0a] p-5 sm:p-6">
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/[0.03] to-transparent pointer-events-none" />
+            <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center shrink-0">
+                  <Play className="h-5 w-5 text-cyan-300 ml-0.5" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white" style={{ fontFamily: "var(--font-heading)" }}>Start a new interview</h3>
+                  <p className="text-sm text-zinc-500 mt-0.5">
+                    {hasData ? "Choose a role and begin your practice session." : "Your first interview is a click away."}
+                  </p>
+                </div>
+              </div>
+              {subscription && subscription.interviewsRemaining <= 0 ? (
+                <Button disabled className="rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25 h-12 px-7 text-sm font-semibold cursor-not-allowed shrink-0">
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  Upgrade to continue
+                </Button>
+              ) : (
+                <Link to="/setup">
+                  <Button
+                    data-testid="dashboard-start-cta"
+                    className="group rounded-full bg-white hover:bg-zinc-200 text-black h-12 px-7 text-sm font-bold shadow-lg transition-all active:scale-[0.97] shrink-0"
+                  >
+                    <Play className="mr-2 h-4 w-4" strokeWidth={2.5} />
+                    New interview
+                    <motion.span
+                      className="ml-1.5 inline-block"
+                      initial={{ x: 0 }}
+                      whileHover={{ x: 3 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                    >
+                      &rarr;
+                    </motion.span>
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        </motion.section>
+
+        {/* ═══════════ STATS — horizontal bar ═══════════ */}
+        {hasData && (
+          <motion.section
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.16 }}
+            className="mb-10 sm:mb-14"
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-white/[0.06] border border-white/[0.06] rounded-2xl overflow-hidden bg-[#0a0a0a]">
+              {[
+                { value: stats.totalInterviews, label: "Interviews", accent: "text-5xl", delta: weekAggregates.thisWeek - weekAggregates.lastWeek },
+                { value: stats.averageScore, label: "Avg score", accent: "text-5xl text-cyan-300" },
+                { value: stats.bestScore, label: "Best score", accent: "text-5xl text-emerald-400" },
+                { value: `${stats.totalPracticeMinutes}m`, label: "Practice", accent: "text-4xl" },
+                { value: interviews.length >= 2 ? `+${Math.max(0, interviews[0].overallScore - interviews[interviews.length - 1].overallScore)}` : "\u2014", label: "Improve", accent: "text-4xl" },
+                { value: weekAggregates.thisWeek >= weeklyGoal ? "Done \u2713" : `${weeklyGoal - weekAggregates.thisWeek}`, label: "To go", accent: "text-4xl" },
+              ].map(({ value, label, accent, delta }, i) => (
+                <motion.div
+                  key={label}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: 0.18 + i * 0.04 }}
+                  className="p-5 sm:p-6 group cursor-default hover:bg-white/[0.015] transition-colors"
+                >
+                  <div className="flex items-baseline gap-2">
+                    <span className={`font-black tracking-tighter leading-none ${accent || "text-white"}`}>
+                      <AnimatedNumber value={value} enabled={hasData} />
+                    </span>
+                    {typeof delta === "number" && delta !== 0 && (
+                      <motion.span
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: 0.4 + i * 0.05 }}
+                        className={`text-xs font-semibold ${delta > 0 ? "text-emerald-400" : "text-red-400"}`}
+                      >
+                        {delta > 0 ? "+" : ""}{delta}
+                      </motion.span>
                     )}
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                  <div className="text-xs text-zinc-500 mt-1.5 uppercase tracking-wider font-medium">{label}</div>
+                </motion.div>
+              ))}
+            </div>
           </motion.section>
         )}
 
-        {/* ─── analytics ─── */}
+        {/* ═══════════ ANALYTICS ═══════════ */}
         {hasData && (
           <motion.section
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 mb-8 sm:mb-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.14 }}
+            className="mb-10 sm:mb-14"
           >
-            {/* score trend area chart */}
-            <div className="lg:col-span-2 rounded-2xl border border-white/[0.06] bg-[#0a0a0a] p-5 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2
-                    className="text-sm font-semibold text-white"
-                    style={{ fontFamily: "var(--font-heading)" }}
-                  >
-                    Score Trends
-                  </h2>
-                  <p className="text-[11px] text-zinc-600 mt-0.5">
-                    Last {stats.recentScores?.length || 0} interviews · hover to inspect
-                  </p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 border border-white/[0.06] rounded-2xl overflow-hidden">
+              <div className="lg:col-span-2 p-5 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-base font-semibold" style={{ fontFamily: "var(--font-heading)" }}>Score trends</h2>
+                    <p className="text-xs text-zinc-500 mt-0.5">Last {stats.recentScores?.length || 0} interviews</p>
+                  </div>
+                  {scoreDelta !== null && (
+                    <span className={`text-xs font-semibold flex items-center gap-1 ${scoreDelta > 0 ? "text-emerald-400" : scoreDelta < 0 ? "text-red-400" : "text-zinc-500"}`}>
+                      {scoreDelta > 0 ? <TrendingUp className="h-3 w-3" strokeWidth={2} /> : scoreDelta < 0 ? <TrendingDown className="h-3 w-3" strokeWidth={2} /> : null}{scoreDelta > 0 ? "+" : ""}{scoreDelta}
+                    </span>
+                  )}
                 </div>
-                {scoreDelta !== null && (
-                  <div
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold border ${scoreDelta > 0
-                      ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/5"
-                      : scoreDelta < 0
-                        ? "text-red-400 border-red-400/30 bg-red-400/5"
-                        : "text-zinc-400 border-white/10 bg-white/[0.03]"
-                      }`}
-                  >
-                    {scoreDelta > 0 ? (
-                      <TrendingUp className="h-3 w-3" strokeWidth={2} />
-                    ) : scoreDelta < 0 ? (
-                      <TrendingDown className="h-3 w-3" strokeWidth={2} />
-                    ) : null}
-                    {scoreDelta > 0 ? "+" : ""}
-                    {scoreDelta} pts
+                <ScoreTrendChart scores={stats.recentScores || []} />
+              </div>
+              <div className="border-t lg:border-t-0 lg:border-l border-white/[0.06] p-5 sm:p-6 flex flex-col">
+                <div className="mb-1">
+                  <h2 className="text-base font-semibold" style={{ fontFamily: "var(--font-heading)" }}>Skill radar</h2>
+                  <p className="text-xs text-zinc-500 mt-0.5">Average scores</p>
+                </div>
+                {stats.skillAverages && Object.keys(stats.skillAverages).length > 0 ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <SkillRadar skills={stats.skillAverages} />
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-sm text-zinc-600 text-center">
+                    <BrainCircuit className="h-8 w-8 text-zinc-700 mb-2" strokeWidth={1} />
+                    <span>Complete an interview</span>
                   </div>
                 )}
               </div>
-              <ScoreTrendChart scores={stats.recentScores || []} />
-            </div>
-
-            {/* skill radar */}
-            <div className="rounded-2xl border border-white/[0.06] bg-[#0a0a0a] p-5 sm:p-6">
-              <h2
-                className="text-sm font-semibold text-white mb-2"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                Skill Radar
-              </h2>
-              <p className="text-[11px] text-zinc-600 mb-2">Average across interviews</p>
-              {stats.skillAverages && Object.keys(stats.skillAverages).length > 0 ? (
-                <SkillRadar skills={stats.skillAverages} />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-44 text-sm text-zinc-600 text-center">
-                  <BrainCircuit className="h-8 w-8 text-zinc-700 mb-2" strokeWidth={1} />
-                  Complete an interview to see skill scores
-                </div>
-              )}
             </div>
           </motion.section>
         )}
 
-        {/* ─── progress cards ─── */}
-        {hasData && (
-          <section className="mb-8 sm:mb-10">
-            <h2
-              className="text-sm font-semibold text-white mb-4"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              Progress
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="group rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-4 sm:p-5 hover:border-white/15 transition-all">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="h-7 w-7 rounded-lg bg-emerald-400/10 flex items-center justify-center">
-                    <TrendingUp className="h-3.5 w-3.5 text-emerald-400" strokeWidth={1.5} />
-                  </div>
-                  <span className="text-[11px] font-mono tracking-widest uppercase text-zinc-600">
-                    Improvement
-                  </span>
+        {/* ═══════════ EMPTY STATE ═══════════ */}
+        {!hasData && !interviewsLoading && (
+          <motion.section
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mb-10 sm:mb-14"
+          >
+            <div className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0a0a0a] px-6 sm:px-8 py-10 sm:py-12 text-center">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/[0.03] rounded-full blur-[80px] pointer-events-none" />
+              <div className="relative">
+                <div className="h-14 w-14 rounded-2xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center mx-auto">
+                  <Zap className="h-6 w-6 text-cyan-300" strokeWidth={1.5} />
                 </div>
-                <div className="text-xl font-bold text-white">
-                  {interviews.length >= 2
-                    ? `${Math.max(
-                      0,
-                      interviews[0].overallScore - interviews[interviews.length - 1].overallScore
-                    )} pts`
-                    : "—"}
-                </div>
-                <div className="text-[11px] text-zinc-600 mt-0.5">
-                  {interviews.length >= 2
-                    ? "First to latest interview"
-                    : "Need 2+ interviews"}
-                </div>
-              </div>
-              <div className="group rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-4 sm:p-5 hover:border-white/15 transition-all">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="h-7 w-7 rounded-lg bg-amber-400/10 flex items-center justify-center">
-                    <Trophy className="h-3.5 w-3.5 text-amber-400" strokeWidth={1.5} />
-                  </div>
-                  <span className="text-[11px] font-mono tracking-widest uppercase text-zinc-600">
-                    Best Performance
-                  </span>
-                </div>
-                <div className="text-xl font-bold text-white truncate">
-                  {bestInterview ? bestInterview.jobRole : "—"}
-                </div>
-                <div className="text-[11px] text-zinc-600 mt-0.5">
-                  {bestInterview ? `Score: ${bestInterview.overallScore}` : "No interviews yet"}
-                </div>
-              </div>
-              <div className="group rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-4 sm:p-5 hover:border-white/15 transition-all">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="h-7 w-7 rounded-lg bg-cyan-400/10 flex items-center justify-center">
-                    <Sparkles className="h-3.5 w-3.5 text-cyan-400" strokeWidth={1.5} />
-                  </div>
-                  <span className="text-[11px] font-mono tracking-widest uppercase text-zinc-600">
-                    Next Step
-                  </span>
-                </div>
-                <div className="text-xl font-bold text-white">
-                  {weekAggregates.thisWeek >= weeklyGoal
-                    ? "Goal hit!"
-                    : `${weeklyGoal - weekAggregates.thisWeek} more`}
-                </div>
-                <div className="text-[11px] text-zinc-600 mt-0.5">
-                  {weekAggregates.thisWeek >= weeklyGoal
-                    ? "Amazing consistency"
-                    : "To reach this week's goal"}
+                <h2 className="mt-4 text-2xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>Ready for your first interview?</h2>
+                <p className="mt-2 text-base text-zinc-500 max-w-md mx-auto leading-relaxed">Complete one to unlock stats, trends, skill analysis, and improvement tips.</p>
+                <Link to="/setup">
+                  <Button className="mt-6 h-12 rounded-full bg-white hover:bg-zinc-200 text-black px-8 text-sm font-bold shadow-lg transition-all active:scale-[0.97]">
+                    <Play className="mr-2 h-4 w-4" strokeWidth={2.5} />
+                    Start your first interview
+                  </Button>
+                </Link>
+                <div className="mt-10 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-left">
+                  {[
+                    { icon: Briefcase, title: "Pick a role", desc: "Job role & level" },
+                    { icon: Zap, title: "Practice", desc: "AI voice simulation" },
+                    { icon: FileText, title: "Feedback", desc: "Scores & tips" },
+                  ].map(({ icon: Icon, title, desc }) => (
+                    <div key={title} className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-white/[0.03] flex items-center justify-center">
+                        <Icon className="h-4 w-4 text-cyan-300" strokeWidth={1.5} />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-white">{title}</div>
+                        <div className="text-xs text-zinc-600">{desc}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-          </section>
+          </motion.section>
         )}
 
-        {/* ─── interview history ─── */}
+        {/* ═══════════ INTERVIEW HISTORY ═══════════ */}
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
             <div>
-              <h2
-                className="text-sm font-semibold text-white"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                Interview History
-              </h2>
-              <p className="text-[11px] text-zinc-600 mt-0.5">
-                {interviews.length > 0 ? `${interviews.length} completed` : "Review past interviews"}
-              </p>
+              <h2 className="text-base font-semibold" style={{ fontFamily: "var(--font-heading)" }}>History</h2>
+              <p className="text-xs text-zinc-500 mt-0.5">{interviews.length > 0 ? `${interviews.length} completed` : "Past interviews"}</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative flex-1 sm:flex-initial">
-                <Search
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-600"
-                  strokeWidth={1.5}
-                />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-600" strokeWidth={1.5} />
                 <Input
                   value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setVisibleCount(PAGE_SIZE);
-                  }}
+                  onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(PAGE_SIZE); }}
                   placeholder="Search..."
                   aria-label="Search interviews"
-                  className="h-9 w-full sm:w-44 lg:w-56 rounded-lg bg-white/[0.03] border-white/10 text-sm text-white placeholder:text-zinc-600 pl-9 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40"
+                  className="h-9 w-full sm:w-44 rounded-lg bg-transparent border-white/10 text-sm text-white placeholder:text-zinc-600 pl-9"
                 />
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 aria-label={showFilters ? "Hide filters" : "Show filters"}
-                className={`h-9 w-9 rounded-lg border flex items-center justify-center transition-colors ${showFilters || levelFilter !== "All Levels"
-                  ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-300"
-                  : "border-white/10 bg-white/[0.03] text-zinc-500 hover:text-zinc-300"
-                  }`}
+                className={`h-9 w-9 rounded-lg border flex items-center justify-center transition-colors ${showFilters || levelFilter !== "All Levels" ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-300" : "border-white/10 bg-transparent text-zinc-500 hover:text-zinc-300"}`}
               >
                 <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
               </button>
@@ -1234,18 +1003,12 @@ export default function DashboardPage() {
           </div>
 
           {showFilters && (
-            <div className="flex flex-wrap items-center gap-2 mb-4 p-2.5 rounded-xl border border-white/[0.06] bg-[#0a0a0a]">
+            <div className="flex flex-wrap items-center gap-1.5 mb-4">
               {LEVELS.map((l) => (
                 <button
                   key={l}
-                  onClick={() => {
-                    setLevelFilter(l);
-                    setVisibleCount(PAGE_SIZE);
-                  }}
-                  className={`text-[11px] px-3 py-1.5 rounded-full border transition-colors ${levelFilter === l
-                    ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-300"
-                    : "border-white/10 text-zinc-500 hover:text-zinc-300 hover:border-white/20"
-                    }`}
+                  onClick={() => { setLevelFilter(l); setVisibleCount(PAGE_SIZE); }}
+                  className={`text-xs px-3 py-1.5 rounded-full transition-colors ${levelFilter === l ? "bg-white/10 text-white" : "text-zinc-600 hover:text-zinc-400"}`}
                 >
                   {l}
                 </button>
@@ -1254,109 +1017,60 @@ export default function DashboardPage() {
           )}
 
           {interviewsLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-5 w-5 animate-spin text-zinc-600" />
-            </div>
+            <div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-zinc-600" /></div>
           ) : filteredInterviews.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {visibleInterviews.map((interview, idx) => (
-                  <Link
-                    key={interview.id}
-                    to={{
-                      pathname: `/report/${interview.id}`,
-                      state: { interview },
-                    }}
-                    className="block group"
-                  >
+                  <Link key={interview.id} to={{ pathname: `/report/${interview.id}`, state: { interview } }} className="block group">
                     <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: Math.min(idx * 0.03, 0.3) }}
-                      className="relative rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-4 sm:p-5 hover:border-white/20 hover:bg-[#0d0d0d] transition-all duration-300 overflow-hidden cursor-pointer"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.25, delay: Math.min(idx * 0.02, 0.2) }}
+                      className="rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-4 sm:p-5 transition-all hover:border-white/20 hover:bg-white/[0.02]"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="relative">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="h-9 w-9 rounded-lg bg-cyan-400/10 border border-white/5 flex items-center justify-center">
-                            <Briefcase className="h-4 w-4 text-cyan-300" strokeWidth={1.5} />
-                          </div>
-                          <div
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${scoreBg(
-                              interview.overallScore
-                            )} ${scoreColor(interview.overallScore)}`}
-                          >
-                            {interview.overallScore}
+                      <div className="flex items-start gap-3">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold font-mono ${scoreBg(interview.overallScore)} ${scoreColor(interview.overallScore)} shrink-0`}>
+                          {interview.overallScore}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-white truncate group-hover:text-cyan-300 transition-colors">{interview.jobRole}</div>
+                          <div className="text-xs text-zinc-500 mt-1 flex flex-wrap gap-x-3">
+                            <span>{interview.experienceLevel}</span>
+                            <span>{interview.durationMinutes}m</span>
+                            <span>{fmtDate(interview.completedAt)}</span>
                           </div>
                         </div>
-                        <h3 className="text-sm font-semibold text-white truncate">
-                          {interview.jobRole}
-                        </h3>
-                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px] text-zinc-500">
-                          <span>{interview.experienceLevel}</span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" strokeWidth={1.5} />
-                            {interview.durationMinutes}m
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" strokeWidth={1.5} />
-                            {fmtDate(interview.completedAt)}
-                          </span>
-                        </div>
+                        <ChevronRight className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400 transition-colors shrink-0 mt-1.5" strokeWidth={1.5} />
                       </div>
                     </motion.div>
                   </Link>
                 ))}
               </div>
-
               {hasMore && (
                 <div className="flex justify-center mt-5">
-                  <button
-                    onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-                    className="flex items-center gap-1.5 px-5 h-9 rounded-full border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-sm text-zinc-400 hover:text-white transition-all"
-                  >
-                    Load more ({filteredInterviews.length - visibleCount} left)
-                    <ChevronRight className="h-3.5 w-3.5" />
+                  <button onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)} className="flex items-center gap-1.5 px-5 h-9 rounded-full border border-white/10 bg-transparent hover:bg-white/[0.03] text-sm text-zinc-500 hover:text-white transition-all">
+                    Show {filteredInterviews.length - visibleCount} more &rarr;
                   </button>
                 </div>
               )}
             </>
           ) : interviews.length > 0 ? (
-            <div className="flex flex-col items-center py-14 text-center px-6 rounded-xl border border-dashed border-white/[0.06]">
+            <div className="flex flex-col items-center py-14 text-center">
               <Search className="h-10 w-10 text-zinc-700 mb-3" strokeWidth={1} />
               <p className="text-sm text-zinc-500">No matches found</p>
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setLevelFilter("All Levels");
-                }}
-                className="mt-2 text-xs text-cyan-300 hover:text-cyan-200 transition-colors"
-              >
-                Clear all filters
-              </button>
-            </div>
-          ) : hasData ? (
-            <div className="flex flex-col items-center py-14 text-center px-6 rounded-xl border border-dashed border-white/[0.06]">
-              <FileText className="h-10 w-10 text-zinc-700 mb-3" strokeWidth={1} />
-              <p className="text-sm text-zinc-500">No history yet</p>
+              <button onClick={() => { setSearchQuery(""); setLevelFilter("All Levels"); }} className="mt-2 text-xs text-cyan-300 hover:text-cyan-200 transition-colors">Clear filters</button>
             </div>
           ) : null}
         </section>
 
-        {/* ─── feedback ─── */}
+        {/* ═══════════ FEEDBACK ═══════════ */}
         <section className="mt-8 mb-6">
-          <div className="rounded-2xl border border-white/[0.06] bg-[#0a0a0a] p-5 sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-[10px] font-mono tracking-[0.25em] uppercase text-cyan-300/80">Feedback</p>
-                <p className="mt-1.5 text-sm text-zinc-400">Help us improve the tool — share your thoughts on the app.</p>
-              </div>
-              <Link to="/feedback">
-                <Button className="h-9 rounded-full bg-cyan-400 hover:bg-cyan-300 text-black px-5 text-xs font-semibold shrink-0">
-                  Submit feedback
-                </Button>
-              </Link>
-            </div>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-zinc-500">Help us improve &mdash; share your thoughts.</p>
+            <Link to="/feedback">
+              <span className="text-sm text-cyan-300 hover:text-cyan-200 transition-colors cursor-pointer">Send feedback &rarr;</span>
+            </Link>
           </div>
         </section>
 
