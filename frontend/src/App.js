@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary, GlobalErrorHandler } from "@/components/ErrorBoundary";
@@ -33,33 +33,43 @@ const FeedbackPage = lazy(() => import("@/pages/FeedbackPage"));
 
 const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || "";
 
-function AppContent() {
+function AppRoutes() {
   const { loading } = useAuth();
+  const location = useLocation();
 
+  const publicPaths = ["/", "/signin", "/signup", "/forgot-password", "/reset-password"];
+  const isPublicPage = publicPaths.includes(location.pathname);
+
+  if (loading && !isPublicPage) {
+    return <LoadingScreen message="Loading Voxa..." submessage="Preparing your experience" />;
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/setup" element={<SetupPage />} />
+      <Route path="/interview" element={<InterviewPage />} />
+      <Route path="/report" element={<ReportPage />} />
+      <Route path="/report/:id" element={<ReportPage />} />
+      <Route path="/signin" element={<SignInPage />} />
+      <Route path="/signup" element={<SignUpPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/dashboard" element={<DashboardPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/feedback" element={<FeedbackPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+function AppContent() {
   return (
     <InterviewProvider>
       <BrowserRouter>
         <ErrorBoundary>
           <Suspense fallback={<LoadingScreen message="Loading..." />}>
-            {loading ? (
-              <LoadingScreen message="Loading Voxa..." submessage="Preparing your experience" />
-            ) : (
-              <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/setup" element={<SetupPage />} />
-                <Route path="/interview" element={<InterviewPage />} />
-                <Route path="/report" element={<ReportPage />} />
-                <Route path="/report/:id" element={<ReportPage />} />
-                <Route path="/signin" element={<SignInPage />} />
-                <Route path="/signup" element={<SignUpPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/feedback" element={<FeedbackPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            )}
+            <AppRoutes />
           </Suspense>
         </ErrorBoundary>
       </BrowserRouter>

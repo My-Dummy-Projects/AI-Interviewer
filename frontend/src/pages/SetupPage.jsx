@@ -48,18 +48,19 @@ export default function SetupPage() {
   const createOrder = useCreateOrderMutation();
   const verifyPayment = useVerifyPaymentMutation();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/signin", { replace: true });
-    }
-  }, [loading, user, navigate]);
-
   const maxDuration = subscription?.maxDurationMinutes ?? 15;
   const DURATIONS = ALL_DURATIONS.filter((d) => parseInt(d.value) <= maxDuration);
 
   const remaining = subscription?.interviewsRemaining ?? 0;
   const overLimit = !subLoading && subscription && remaining <= 0;
   const canStart = !overLimit && jobRole.trim().length > 1 && experienceLevel && duration;
+
+  if (loading) {
+    return <LoadingScreen message="Loading setup..." />;
+  }
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
 
   const handleStart = () => {
     if (!canStart) return;

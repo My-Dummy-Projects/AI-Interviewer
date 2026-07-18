@@ -471,11 +471,7 @@ export default function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/signin", { replace: true });
-    }
-  }, [user, authLoading, navigate]);
+
 
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
@@ -503,7 +499,7 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const hasData = stats && stats.totalInterviews > 0;
+  const hasData = (stats?.totalInterviews ?? 0) > 0;
 
   const filteredInterviews = useMemo(() => {
     let result = interviews;
@@ -560,6 +556,9 @@ export default function DashboardPage() {
 
   if (authLoading) {
     return <LoadingScreen message="Loading dashboard..." />;
+  }
+  if (!user) {
+    return <Navigate to="/signin" replace />;
   }
 
   return (
@@ -674,7 +673,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-4 text-[11px] text-zinc-500 font-mono ml-1">
                     <span className="flex items-center gap-1.5">
                       <Flame className="h-3.5 w-3.5 text-orange-400" strokeWidth={2} />
-                      <span className="text-white font-semibold">{Math.min(stats.totalInterviews, 5)}</span> streak
+                      <span className="text-white font-semibold">{Math.min(stats?.totalInterviews ?? 0, 5)}</span> streak
                     </span>
                     <span className="text-white/20">·</span>
                     <span className="flex items-center gap-1.5">

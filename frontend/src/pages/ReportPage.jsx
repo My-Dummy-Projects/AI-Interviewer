@@ -235,10 +235,10 @@ export default function ReportPage() {
           </div>
 
           <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <ScoreCell label="Technical" value={report.skills.technical} />
-            <ScoreCell label="Communication" value={report.skills.communication} />
-            <ScoreCell label="Problem-Solving" value={report.skills.problemSolving} />
-            <ScoreCell label="Confidence" value={report.skills.confidence} />
+            <ScoreCell label="Technical" value={report.skills?.technical ?? 0} />
+            <ScoreCell label="Communication" value={report.skills?.communication ?? 0} />
+            <ScoreCell label="Problem-Solving" value={report.skills?.problemSolving ?? 0} />
+            <ScoreCell label="Confidence" value={report.skills?.confidence ?? 0} />
           </div>
         </section>
 
