@@ -186,7 +186,7 @@ async def get_profile(current_user=Depends(get_current_user)):
 
 @api_router_user.put("/profile", response_model=UserProfileResponse)
 async def update_profile(req: UserProfileUpdate, current_user=Depends(get_current_user)):
-    user_id = current_user.id
+    user_id = normalize_user_id(current_user.id)
     update_data = {k: v for k, v in req.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -290,7 +290,7 @@ async def submit_tool_feedback(req: FeedbackEntryRequest, current_user=Depends(g
     ensure_user_profile(current_user)
     created_at = datetime.now(timezone.utc).isoformat()
     result = supabase.table("feedback_entries").insert({
-        "user_id": current_user.id,
+        "user_id": normalize_user_id(current_user.id),
         "email": getattr(current_user, "email", ""),
         "feedback": req.feedback.strip(),
         "rating": req.rating,

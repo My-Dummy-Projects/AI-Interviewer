@@ -12,7 +12,8 @@ import { useInterview } from "@/context/InterviewContext";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { SkeletonReport } from "@/components/LoadingScreen";
-import api from "@/lib/api";
+import { useInterviewQuery, useSubscriptionQuery } from "@/hooks/useApiQueries";
+import { useCreateOrderMutation, useVerifyPaymentMutation } from "@/hooks/useApiMutations";
 import { openRazorpayCheckout } from "@/lib/razorpay";
 import { toast } from "sonner";
 
@@ -58,45 +59,25 @@ export default function ReportPage() {
   const location = useLocation();
   const { id } = useParams();
   const { report: ctxReport, setup: ctxSetup, reset } = useInterview();
-  const [loading, setLoading] = useState(() => Boolean(id) && !location.state?.interview);
   const [interviewData, setInterviewData] = useState(location.state?.interview || null);
-  const [subscription, setSubscription] = useState(null);
 
   const isHistorical = Boolean(id);
+  const { data: fetchedInterview, isLoading: interviewLoading } = useInterviewQuery(id, isHistorical && !interviewData);
+  const { data: subscription } = useSubscriptionQuery(true);
+  const createOrder = useCreateOrderMutation();
+  const verifyPayment = useVerifyPaymentMutation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    api.getSubscription().then(setSubscription).catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!loading) {
-      window.scrollTo(0, 0);
+    if (fetchedInterview) {
+      setInterviewData(fetchedInterview);
     }
-  }, [loading]);
+  }, [fetchedInterview]);
 
-  useEffect(() => {
-    if (!id) return;
-    if (location.state?.interview) {
-      setInterviewData(location.state.interview);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    api.getInterview(id).then((data) => {
-      if (!cancelled) {
-        setInterviewData(data);
-        setLoading(false);
-      }
-    }).catch(() => {
-      if (!cancelled) {
-        setLoading(false);
-      }
-    });
-    return () => { cancelled = true; };
-  }, [id, location.state?.interview]);
+  const loading = interviewLoading && !interviewData;
 
   const report = useMemo(() => (isHistorical ? interviewData?.report : ctxReport), [isHistorical, interviewData, ctxReport]);
   const setup = useMemo(() => (
@@ -387,7 +368,7 @@ export default function ReportPage() {
               <Button
                 onClick={async () => {
                   try {
-                    const { orderId, amount, currency, keyId, userEmail, userName } = await api.createOrder("starter");
+                    const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("starter");
                     openRazorpayCheckout({
                       keyId, orderId, amount, currency,
                       name: "Voxa",
@@ -395,7 +376,7 @@ export default function ReportPage() {
                       prefill: { name: userName, email: userEmail },
                       onSuccess: async (response) => {
                         try {
-                          await api.verifyPayment({
+                          await verifyPayment.mutateAsync({
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature,

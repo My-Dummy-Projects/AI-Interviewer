@@ -38,7 +38,8 @@ import { Input } from "@/components/ui/input";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { useAuth } from "@/context/AuthContext";
-import api from "@/lib/api";
+import { useProfileQuery, useDashboardStatsQuery, useInterviewsQuery, useSubscriptionQuery } from "@/hooks/useApiQueries";
+import { useCreateOrderMutation, useVerifyPaymentMutation } from "@/hooks/useApiMutations";
 import { openRazorpayCheckout } from "@/lib/razorpay";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
@@ -439,17 +440,20 @@ const ProgressRing = React.memo(function ProgressRing({ value, max, size = 128, 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading, signout } = useAuth();
-  const [profile, setProfile] = useState(null);
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [interviews, setInterviews] = useState([]);
-  const [interviewsLoading, setInterviewsLoading] = useState(false);
+
+  const { data: profile } = useProfileQuery(!!user);
+  const { data: stats } = useDashboardStatsQuery(!!user);
+  const { data: interviews = [], isLoading: interviewsLoading } = useInterviewsQuery(!!user);
+  const { data: subscription } = useSubscriptionQuery(!!user);
+
+  const createOrder = useCreateOrderMutation();
+  const verifyPayment = useVerifyPaymentMutation();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState("All Levels");
   const [showFilters, setShowFilters] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [signingOut, setSigningOut] = useState(false);
-  const [subscription, setSubscription] = useState(null);
 
   // Weekly goal (persisted in localStorage)
   const [weeklyGoal, setWeeklyGoal] = useState(DEFAULT_GOAL);
@@ -464,56 +468,11 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const loadProfile = useCallback(async () => {
-    try {
-      const data = await api.getProfile();
-      setProfile(data);
-    } catch {
-      /* non-critical */
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const loadStats = useCallback(async () => {
-    try {
-      const data = await api.getDashboardStats();
-      setStats(data);
-    } catch {
-      /* stats may not exist for new users */
-    }
-  }, []);
-
-  const loadInterviews = useCallback(async () => {
-    setInterviewsLoading(true);
-    try {
-      const data = await api.getInterviews();
-      setInterviews(data.interviews || []);
-    } catch {
-      toast.error("Failed to load interview history");
-    } finally {
-      setInterviewsLoading(false);
-    }
-  }, []);
-
-  const loadSubscription = useCallback(async () => {
-    try {
-      const data = await api.getSubscription();
-      setSubscription(data);
-    } catch {
-      /* non-critical */
-    }
-  }, []);
-
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/signin", { replace: true });
-      return;
     }
-    if (user) {
-      Promise.all([loadProfile(), loadStats(), loadInterviews(), loadSubscription()]);
-    }
-  }, [user, authLoading, navigate, loadProfile, loadStats, loadInterviews, loadSubscription]);
+  }, [user, authLoading, navigate]);
 
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
@@ -886,7 +845,7 @@ export default function DashboardPage() {
                     <Button
                       onClick={async () => {
                         try {
-                          const { orderId, amount, currency, keyId, userEmail, userName } = await api.createOrder("starter");
+                          const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("starter");
                           openRazorpayCheckout({
                             keyId, orderId, amount, currency,
                             name: "Voxa",
@@ -894,7 +853,7 @@ export default function DashboardPage() {
                             prefill: { name: userName, email: userEmail },
                             onSuccess: async (response) => {
                               try {
-                                await api.verifyPayment({
+                                await verifyPayment.mutateAsync({
                                   razorpay_order_id: response.razorpay_order_id,
                                   razorpay_payment_id: response.razorpay_payment_id,
                                   razorpay_signature: response.razorpay_signature,
@@ -914,7 +873,7 @@ export default function DashboardPage() {
                     <Button
                       onClick={async () => {
                         try {
-                          const { orderId, amount, currency, keyId, userEmail, userName } = await api.createOrder("pro");
+                          const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("pro");
                           openRazorpayCheckout({
                             keyId, orderId, amount, currency,
                             name: "Voxa",
@@ -922,7 +881,7 @@ export default function DashboardPage() {
                             prefill: { name: userName, email: userEmail },
                             onSuccess: async (response) => {
                               try {
-                                await api.verifyPayment({
+                                await verifyPayment.mutateAsync({
                                   razorpay_order_id: response.razorpay_order_id,
                                   razorpay_payment_id: response.razorpay_payment_id,
                                   razorpay_signature: response.razorpay_signature,
@@ -951,7 +910,7 @@ export default function DashboardPage() {
                     <Button
                       onClick={async () => {
                         try {
-                          const { orderId, amount, currency, keyId, userEmail, userName } = await api.createOrder("pro");
+                          const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("pro");
                           openRazorpayCheckout({
                             keyId, orderId, amount, currency,
                             name: "Voxa",
@@ -959,7 +918,7 @@ export default function DashboardPage() {
                             prefill: { name: userName, email: userEmail },
                             onSuccess: async (response) => {
                               try {
-                                await api.verifyPayment({
+                                await verifyPayment.mutateAsync({
                                   razorpay_order_id: response.razorpay_order_id,
                                   razorpay_payment_id: response.razorpay_payment_id,
                                   razorpay_signature: response.razorpay_signature,

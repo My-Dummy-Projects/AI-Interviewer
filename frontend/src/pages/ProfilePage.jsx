@@ -22,15 +22,15 @@ import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { useAuth } from "@/context/AuthContext";
 import { useUser } from "@clerk/clerk-react";
-import api from "@/lib/api";
+import { useProfileQuery } from "@/hooks/useApiQueries";
+import { useUpdateProfileMutation } from "@/hooks/useApiMutations";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { user, loading: authLoading, signout, refreshProfile } = useAuth();
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading, signout } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useProfileQuery(!!user);
   const [saving, setSaving] = useState(false);
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
@@ -43,34 +43,25 @@ export default function ProfilePage() {
   const [showPasswords, setShowPasswords] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
 
+  const updateProfile = useUpdateProfileMutation();
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/signin", { replace: true });
-      return;
-    }
-    if (user) {
-      loadProfile();
     }
   }, [user, authLoading, navigate]);
 
-  const loadProfile = async () => {
-    try {
-      const data = await api.getProfile();
-      setProfile(data);
-      setEditName(data.display_name || "");
-      setEditBio(data.bio || "");
-    } catch {
-      toast.error("Failed to load profile");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (profile) {
+      setEditName(profile.display_name || "");
+      setEditBio(profile.bio || "");
     }
-  };
+  }, [profile]);
 
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      await api.updateProfile({ display_name: editName.trim(), bio: editBio.trim() });
-      await refreshProfile();
+      await updateProfile.mutateAsync({ display_name: editName.trim(), bio: editBio.trim() });
       toast.success("Profile updated");
     } catch {
       toast.error("Failed to update profile");
@@ -119,7 +110,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (authLoading || (!user && !authLoading)) {
+  if (authLoading || profileLoading) {
     return <LoadingScreen message="Loading profile..." />;
   }
 

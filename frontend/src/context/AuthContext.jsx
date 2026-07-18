@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useUser, useAuth as useClerkAuth, useSignIn, useSignUp } from "@clerk/clerk-react";
 import api, { setBearerToken, setTokenRefresher } from "@/lib/api";
+import { useProfileQuery, queryKeys } from "@/hooks/useApiQueries";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AuthContext = createContext(null);
 
@@ -9,54 +11,56 @@ export function AuthProvider({ children }) {
   const { getToken, signOut: clerkSignOut } = useClerkAuth();
   const { signIn: clerkSignIn, setActive: setActiveSignIn } = useSignIn();
   const { signUp: clerkSignUp, setActive: setActiveSignUp } = useSignUp();
+  const queryClient = useQueryClient();
 
+  const [tokenReady, setTokenReady] = useState(false);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+
+  const { data: profile, isError: profileError } = useProfileQuery(isSignedIn && tokenReady);
 
   useEffect(() => {
-    if (!isLoaded) return;
-
+    if (!isLoaded) {
+      setTokenReady(false);
+      return;
+    }
     if (!isSignedIn) {
       setBearerToken(null);
       setUser(null);
-      setLoading(false);
+      setTokenReady(true);
       return;
     }
-
     const init = async () => {
       try {
         const token = await getToken();
         setBearerToken(token);
-
-        const profile = await api.getProfile();
-        setUser({
-          id: clerkUser.id,
-          email: clerkUser.primaryEmailAddress?.emailAddress || profile.email,
-          ...profile,
-        });
-      } catch (err) {
-        console.error("Profile fetch failed, using Clerk user data:", err);
-        setUser({
-          id: clerkUser.id,
-          email: clerkUser.primaryEmailAddress?.emailAddress || "",
-          display_name:
-            clerkUser.fullName ||
-            clerkUser.username ||
-            clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] ||
-            "",
-          avatar_url: clerkUser.imageUrl || "",
-        });
-      } finally {
-        setLoading(false);
+        setTokenReady(true);
+      } catch {
+        setTokenReady(true);
       }
     };
-
     init();
-
     setTokenRefresher(() => getToken);
-
     return () => setTokenRefresher(null);
-  }, [isLoaded, isSignedIn, clerkUser, getToken]);
+  }, [isLoaded, isSignedIn, getToken]);
+
+  useEffect(() => {
+    if (!isSignedIn || !profile) return;
+    setUser({
+      id: clerkUser.id,
+      email: clerkUser.primaryEmailAddress?.emailAddress || profile.email,
+      ...profile,
+    });
+  }, [isSignedIn, profile, clerkUser]);
+
+  useEffect(() => {
+    if (!isSignedIn || !tokenReady || !profileError) return;
+    setUser({
+      id: clerkUser.id,
+      email: clerkUser.primaryEmailAddress?.emailAddress || "",
+      display_name: clerkUser.fullName || clerkUser.username || clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] || "",
+      avatar_url: clerkUser.imageUrl || "",
+    });
+  }, [isSignedIn, tokenReady, profileError, clerkUser]);
 
   const signup = useCallback(
     async (email, password) => {
@@ -104,7 +108,8 @@ export function AuthProvider({ children }) {
     await clerkSignOut();
     setBearerToken(null);
     setUser(null);
-  }, [clerkSignOut]);
+    queryClient.clear();
+  }, [clerkSignOut, queryClient]);
 
   const verifySignupOtp = useCallback(
     async (code) => {
@@ -125,11 +130,8 @@ export function AuthProvider({ children }) {
   );
 
   const refreshProfile = useCallback(async () => {
-    try {
-      const profile = await api.getProfile();
-      setUser((prev) => ({ ...prev, ...profile }));
-    } catch { }
-  }, []);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+  }, [queryClient]);
 
   const getFreshToken = useCallback(async () => {
     try {
@@ -143,10 +145,19 @@ export function AuthProvider({ children }) {
     }
   }, [getToken]);
 
+  const value = {
+    user,
+    loading: !isLoaded || (isSignedIn && (!tokenReady || !user)),
+    signup,
+    signin,
+    signout,
+    verifySignupOtp,
+    refreshProfile,
+    getFreshToken,
+  };
+
   return (
-    <AuthContext.Provider
-      value={{ user, loading: loading || !isLoaded, signup, signin, signout, verifySignupOtp, refreshProfile, getFreshToken }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

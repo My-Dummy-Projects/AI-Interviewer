@@ -15,7 +15,8 @@ import { useInterview } from "@/context/InterviewContext";
 import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
-import api from "@/lib/api";
+import { useSubscriptionQuery } from "@/hooks/useApiQueries";
+import { useCreateOrderMutation, useVerifyPaymentMutation } from "@/hooks/useApiMutations";
 import { openRazorpayCheckout } from "@/lib/razorpay";
 import { toast } from "sonner";
 
@@ -42,16 +43,10 @@ export default function SetupPage() {
   const [jobRole, setJobRole] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
   const [duration, setDuration] = useState("");
-  const [subscription, setSubscription] = useState(null);
-  const [subLoading, setSubLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      api.getSubscription().then(setSubscription).catch(() => {}).finally(() => setSubLoading(false));
-    } else {
-      setSubLoading(false);
-    }
-  }, [user]);
+  const { data: subscription, isLoading: subLoading } = useSubscriptionQuery(!!user);
+  const createOrder = useCreateOrderMutation();
+  const verifyPayment = useVerifyPaymentMutation();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -196,35 +191,34 @@ export default function SetupPage() {
                     Checking...
                   </Button>
                 ) : overLimit ? (
-                  <Button
-                    onClick={async () => {
-                      try {
-                        const { orderId, amount, currency, keyId, userEmail, userName } = await api.createOrder("starter");
-                        openRazorpayCheckout({
-                          keyId, orderId, amount, currency,
-                          name: "Voxa",
-                          description: "Starter Plan - ₹299/month",
-                          prefill: { name: userName, email: userEmail },
-                          onSuccess: async (response) => {
-                            try {
-                              await api.verifyPayment({
-                                razorpay_order_id: response.razorpay_order_id,
-                                razorpay_payment_id: response.razorpay_payment_id,
-                                razorpay_signature: response.razorpay_signature,
-                              });
-                              toast.success("Subscribed! You can now start an interview.");
-                              window.location.reload();
-                            } catch { toast.error("Verification failed."); }
-                          },
-                          onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
-                        });
-                      } catch { toast.error("Failed to start payment."); }
-                    }}
-                    className="h-12 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 px-6 text-sm font-semibold hover:bg-amber-400/20"
-                  >
-                    <AlertTriangle className="mr-2 h-4 w-4" />
-                    Upgrade to start
-                  </Button>
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("starter");
+                          openRazorpayCheckout({
+                            keyId, orderId, amount, currency,
+                            name: "Voxa",
+                            description: "Starter Plan - ₹299/month",
+                            prefill: { name: userName, email: userEmail },
+                            onSuccess: async (response) => {
+                              try {
+                                await verifyPayment.mutateAsync({
+                                  razorpay_order_id: response.razorpay_order_id,
+                                  razorpay_payment_id: response.razorpay_payment_id,
+                                  razorpay_signature: response.razorpay_signature,
+                                });
+                                toast.success("Subscribed! You can now start an interview.");
+                                window.location.reload();
+                              } catch { toast.error("Verification failed."); }
+                            },
+                            onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
+                          });
+                        } catch { toast.error("Failed to start payment."); }
+                      }}
+                      className="h-12 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 px-6 text-sm font-semibold hover:bg-amber-400/20"
+                    >
+                      Upgrade to start
+                    </Button>
                 ) : (
                   <Button
                     data-testid="start-interview-button"

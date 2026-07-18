@@ -8,7 +8,8 @@ import { getVapi, resetVapi } from "@/lib/vapiClient";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { LoadingScreen, LoadingOverlay } from "@/components/LoadingScreen";
-import api from "@/lib/api";
+import { useConfigQuery } from "@/hooks/useApiQueries";
+import { useSubmitFeedbackMutation } from "@/hooks/useApiMutations";
 import { useAuth } from "@/context/AuthContext";
 
 function fmtTime(sec) {
@@ -36,7 +37,6 @@ export default function InterviewPage() {
   const partialsRef = useRef({ user: "", assistant: "" });
   const endedGuardRef = useRef(false);
   const configRef = useRef(null);
-  const cachedConfigRef = useRef(null);
   const handleEndRef = useRef(null);
   const debounceRef = useRef(null);
 
@@ -64,6 +64,9 @@ export default function InterviewPage() {
     v.setMuted(next);
     setIsMuted(next);
   }, [isMuted]);
+
+  const { data: configData } = useConfigQuery(true);
+  const submitFeedback = useSubmitFeedbackMutation();
 
   const handleEnd = useCallback(async () => {
     if (submitting) return;
@@ -99,14 +102,14 @@ export default function InterviewPage() {
       }
 
       await getFreshToken();
-      const data = await api.submitFeedback(payload);
+      const data = await submitFeedback.mutateAsync(payload);
       setReport(data);
       navigate("/report");
     } catch (e) {
       toast.error("Could not generate feedback. Please try again.");
       setSubmitting(false);
     }
-  }, [setup, submitting, navigate, setReport, reset, getFreshToken, user]);
+  }, [setup, submitting, navigate, setReport, reset, getFreshToken, user, submitFeedback]);
   handleEndRef.current = handleEnd;
 
   useEffect(() => {
@@ -131,7 +134,7 @@ export default function InterviewPage() {
   }, [status, ended, durationSec]);
 
   useEffect(() => {
-    if (!setup) return;
+    if (!setup || !configData) return;
     let destroyed = false;
     let currentVapi = null;
 
@@ -190,10 +193,7 @@ export default function InterviewPage() {
 
     async function boot() {
       try {
-        if (!cachedConfigRef.current) {
-          cachedConfigRef.current = await api.getConfig();
-        }
-        const cfg = cachedConfigRef.current;
+        const cfg = configData;
         if (destroyed) return;
         configRef.current = cfg;
         if (!cfg.ready) {
@@ -247,7 +247,7 @@ export default function InterviewPage() {
         currentVapi.off("error", onError);
       }
     };
-  }, [setup, buildDisplayTranscript]);
+  }, [setup, configData, buildDisplayTranscript]);
 
   useEffect(() => {
     return () => {

@@ -2,11 +2,22 @@ import React, { lazy, Suspense } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary, GlobalErrorHandler } from "@/components/ErrorBoundary";
 import { Toaster } from "sonner";
 import { InterviewProvider } from "@/context/InterviewContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 30_000,
+    },
+  },
+});
 
 const LandingPage = lazy(() => import("@/pages/LandingPage"));
 const SetupPage = lazy(() => import("@/pages/SetupPage"));
@@ -26,6 +37,7 @@ function App() {
   return (
     <div className="App">
       <GlobalErrorHandler />
+      <QueryClientProvider client={queryClient}>
       <ClerkProvider
         publishableKey={clerkPubKey}
         afterSignUpUrl="/dashboard"
@@ -72,6 +84,7 @@ function App() {
           </InterviewProvider>
         </AuthProvider>
       </ClerkProvider>
+      </QueryClientProvider>
     </div>
   );
 }

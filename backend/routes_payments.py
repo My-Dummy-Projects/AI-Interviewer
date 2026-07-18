@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from config import supabase, logger, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET
-from deps import get_current_user
+from deps import get_current_user, normalize_user_id
 from models import CreateOrderRequest, CreateOrderResponse, VerifyPaymentRequest, PLAN_LIMITS, PLAN_RANK
 
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
@@ -30,7 +30,8 @@ async def create_order(req: CreateOrderRequest, current_user=Depends(get_current
     amount_in_paise = plan_config["price_inr"]
 
     # Check for duplicate active subscription
-    sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", current_user.id).execute()
+    uid = normalize_user_id(current_user.id)
+    sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", uid).execute()
     current_sub = sub_result.data[0] if sub_result.data else None
     current_plan = (current_sub or {}).get("plan", "free")
 
@@ -92,7 +93,8 @@ async def verify_payment(req: VerifyPaymentRequest, current_user=Depends(get_cur
         old_rank = PLAN_RANK.get(current_plan, 0)
 
         # Fetch current subscription
-        sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", current_user.id).execute()
+        uid = normalize_user_id(current_user.id)
+        sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", uid).execute()
         current_sub = sub_result.data[0] if sub_result.data else {}
 
         now = datetime.now(timezone.utc)
@@ -116,7 +118,7 @@ async def verify_payment(req: VerifyPaymentRequest, current_user=Depends(get_cur
             "razorpay_payment_id": req.razorpay_payment_id,
             "current_period_start": now.isoformat(),
             "current_period_end": period_end.isoformat(),
-        }).eq("user_id", current_user.id).execute()
+        }).eq("user_id", uid).execute()
 
         logger.info(f"Payment verified for user {current_user.id}: plan={plan_id}, used={interviews_used}")
         return {"status": "success", "plan": plan_id}
@@ -168,7 +170,8 @@ async def razorpay_webhook(request: Request):
         new_rank = PLAN_RANK.get(plan_id, 0)
         old_rank = PLAN_RANK.get(current_plan, 0)
 
-        sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", user_id).execute()
+        uid = normalize_user_id(user_id)
+        sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", uid).execute()
         current_sub = sub_result.data[0] if sub_result.data else {}
         interviews_used = current_sub.get("interviews_used", 0) if new_rank > old_rank else 0
 
@@ -184,7 +187,7 @@ async def razorpay_webhook(request: Request):
             "razorpay_payment_id": payload.get("id"),
             "current_period_start": now.isoformat(),
             "current_period_end": period_end.isoformat(),
-        }).eq("user_id", user_id).execute()
+        }).eq("user_id", uid).execute()
 
         logger.info(f"Webhook: subscription activated for user {user_id}: plan={plan_id}")
 

@@ -57,8 +57,9 @@ def ensure_user_profile(current_user) -> None:
 
 
 def build_interview_insert_payload(req: FeedbackRequest, report: FeedbackReport, current_user) -> dict:
+    from deps import normalize_user_id
     return {
-        "user_id": current_user.id,
+        "user_id": normalize_user_id(current_user.id),
         "job_role": req.jobRole,
         "experience_level": req.experienceLevel,
         "duration_minutes": req.durationMinutes,

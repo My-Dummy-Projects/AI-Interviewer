@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { VoxaLogo } from "@/components/VoxaLogo";
-import api from "@/lib/api";
+import { useCreateOrderMutation, useVerifyPaymentMutation } from "@/hooks/useApiMutations";
 import { openRazorpayCheckout } from "@/lib/razorpay";
 
 /* -------- Small subcomponents -------- */
@@ -429,6 +429,8 @@ const PricingCard = React.memo(function PricingCard({ tier }) {
   const isHighlight = tier.highlight;
   const isFree = tier.id === "free";
   const [loading, setLoading] = useState(false);
+  const createOrder = useCreateOrderMutation();
+  const verifyPayment = useVerifyPaymentMutation();
 
   const handleSubscribe = async () => {
     if (isFree) return;
@@ -438,7 +440,7 @@ const PricingCard = React.memo(function PricingCard({ tier }) {
     }
     setLoading(true);
     try {
-      const { orderId, amount, currency, keyId, userEmail, userName } = await api.createOrder(tier.id);
+      const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync(tier.id);
       openRazorpayCheckout({
         keyId,
         orderId,
@@ -449,7 +451,7 @@ const PricingCard = React.memo(function PricingCard({ tier }) {
         prefill: { name: userName, email: userEmail },
         onSuccess: async (response) => {
           try {
-            await api.verifyPayment({
+            await verifyPayment.mutateAsync({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,

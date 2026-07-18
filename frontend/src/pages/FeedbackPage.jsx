@@ -13,7 +13,7 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { useAuth } from "@/context/AuthContext";
-import api from "@/lib/api";
+import { useSubmitToolFeedbackMutation } from "@/hooks/useApiMutations";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
 
@@ -40,6 +40,8 @@ export default function FeedbackPage() {
         }
     }, [authLoading, user, navigate]);
 
+    const submitToolFeedback = useSubmitToolFeedbackMutation();
+
     const handleSubmit = async () => {
         if (!feedback.trim()) {
             toast.error("Please enter your feedback before submitting.");
@@ -48,7 +50,7 @@ export default function FeedbackPage() {
 
         setSubmitting(true);
         try {
-            await api.submitToolFeedback({
+            await submitToolFeedback.mutateAsync({
                 feedback: feedback.trim(),
                 rating,
                 category: category || "",
