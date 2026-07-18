@@ -60,6 +60,7 @@ export default function ReportPage() {
   const { id } = useParams();
   const { report: ctxReport, setup: ctxSetup, reset } = useInterview();
   const [interviewData, setInterviewData] = useState(location.state?.interview || null);
+  const [paying, setPaying] = useState(false);
 
   const isHistorical = Boolean(id);
   const { data: fetchedInterview, isLoading: interviewLoading } = useInterviewQuery(id, isHistorical && !interviewData);
@@ -366,7 +367,10 @@ export default function ReportPage() {
               next steps, topic recommendations, and practice drills tailored to your performance.
             </p>
             <Button
+              disabled={paying}
               onClick={async () => {
+                if (paying) return;
+                setPaying(true);
                 try {
                   const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("starter");
                   openRazorpayCheckout({
@@ -383,11 +387,12 @@ export default function ReportPage() {
                         });
                         toast.success("Subscribed! Learning plan unlocked.");
                         window.location.reload();
-                      } catch { toast.error("Verification failed."); }
+                      } catch { toast.error("Verification failed — payment may be captured. Contact support."); }
                     },
                     onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
                   });
                 } catch { toast.error("Failed to start payment."); }
+                finally { setPaying(false); }
               }}
               className="mt-4 h-10 rounded-full bg-white hover:bg-zinc-200 text-black px-5 text-sm font-semibold"
             >

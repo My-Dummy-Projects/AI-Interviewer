@@ -1,11 +1,19 @@
 from pydantic import BaseModel, field_validator
 from typing import List, Literal, Optional
+from types import MappingProxyType
 
 
 class TranscriptTurn(BaseModel):
     role: Literal["user", "assistant"]
     text: str
     timestamp: Optional[int] = None
+
+    @field_validator("text")
+    @classmethod
+    def limit_text_length(cls, v):
+        if len(v) > 100_000:
+            raise ValueError("Transcript turn text exceeds maximum length of 100,000 characters")
+        return v
 
 
 class FeedbackRequest(BaseModel):
@@ -47,6 +55,13 @@ class FeedbackEntryRequest(BaseModel):
     feedback: str
     rating: Optional[int] = None
     category: Optional[str] = None
+
+    @field_validator("rating")
+    @classmethod
+    def validate_rating(cls, v):
+        if v is not None and (v < 1 or v > 5):
+            raise ValueError("Rating must be between 1 and 5")
+        return v
 
 
 class FeedbackEntryResponse(BaseModel):
@@ -155,9 +170,10 @@ class DashboardStats(BaseModel):
     skillAverages: dict
 
 
-PLAN_RANK = {"free": 0, "starter": 1, "pro": 2}
+_PLAN_RANK = {"free": 0, "starter": 1, "pro": 2}
+PLAN_RANK = MappingProxyType(_PLAN_RANK)
 
-PLAN_LIMITS = {
+_PLAN_LIMITS = {
     "free": {
         "interviews_allowed": 2,
         "interviews_per_month": None,
@@ -190,6 +206,7 @@ PLAN_LIMITS = {
         "lifetime": False,
     },
 }
+PLAN_LIMITS = MappingProxyType({k: MappingProxyType(v) for k, v in _PLAN_LIMITS.items()})
 
 
 class SubscriptionResponse(BaseModel):

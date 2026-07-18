@@ -177,8 +177,8 @@ def build_feedback_prompt(req: FeedbackRequest) -> str:
 Analyze the following mock interview transcript and produce a rigorous, structured evaluation.
 
 Candidate context:
-- Job role: {req.jobRole}
-- Experience level: {req.experienceLevel}
+- Job role: {sanitize_prompt_input(req.jobRole)}
+- Experience level: {sanitize_prompt_input(req.experienceLevel)}
 - Target interview duration: {req.durationMinutes} minutes
 
 Transcript (ASSISTANT is the interviewer, USER is the candidate):
@@ -242,24 +242,20 @@ def fallback_report(req: FeedbackRequest, reason: str) -> FeedbackReport:
             "Practice with structured frameworks (STAR for behavioral).",
             "Rehearse concise, example-driven answers under a time constraint.",
         ],
-        summary=f"Mock interview for {req.jobRole} ({req.experienceLevel}) completed. Detailed AI evaluation is unavailable.",
+        summary=f"Mock interview for {sanitize_prompt_input(req.jobRole)} ({sanitize_prompt_input(req.experienceLevel)}) completed. Detailed AI evaluation is unavailable.",
     )
 
 
 def _resolve_user(current_user, req: FeedbackRequest):
-    if current_user:
-        return current_user
-    if req.userId:
-        from deps import normalize_user_id
-        user_id = normalize_user_id(req.userId)
-        if user_id:
-            logger.info(f"Using fallback user info from request body: {user_id}")
-            return SimpleNamespace(
-                id=user_id,
-                email=req.email or "",
-                name=req.displayName or ""
-            )
-    return None
+    return current_user
+
+
+def sanitize_prompt_input(value: str, max_len: int = 100) -> str:
+    if not value:
+        return ""
+    cleaned = re.sub(r"[\x00-\x1f\x7f]", "", value.strip())
+    cleaned = cleaned.replace("```", "").replace("'''", "")
+    return cleaned[:max_len]
 
 
 async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) -> FeedbackReport:
@@ -309,6 +305,7 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
     current_user = _resolve_user(current_user, req)
 
     if current_user:
+        credit_consumed = False
         try:
             logger.info(f"Saving interview for user {current_user.id}")
             ensure_user_profile(current_user)
@@ -336,23 +333,24 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
                     save_normalized_data(req, report, interview_id)
 
                     # Atomically consume interview credit
-                    credit_ok = consume_interview_credit(current_user.id)
-                    if credit_ok:
+                    if consume_interview_credit(current_user.id):
+                        credit_consumed = True
                         logger.info(f"Interview credit consumed for user {current_user.id}")
                     else:
                         logger.warning(f"Failed to consume interview credit for user {current_user.id}")
-                        refund_interview_credit(current_user.id)
 
                     logger.info(f"Interview {interview_id} fully saved with normalized data")
             else:
                 logger.error(f"Failed to save interview: no data returned. Response: {result}")
-                refund_interview_credit(current_user.id)
         except Exception as e:
             logger.error(f"Failed to save interview: {e}\n{traceback.format_exc()}")
-            try:
-                refund_interview_credit(current_user.id)
-            except Exception:
-                pass
+        finally:
+            if credit_consumed:
+                try:
+                    refund_interview_credit(current_user.id)
+                    logger.info(f"Interview credit refunded for user {current_user.id}")
+                except Exception:
+                    pass
     else:
         logger.warning("current_user is None, skipping database save")
 

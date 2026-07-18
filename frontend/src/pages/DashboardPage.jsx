@@ -457,6 +457,7 @@ export default function DashboardPage() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [signingOut, setSigningOut] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [paying, setPaying] = useState(false);
 
   // Weekly goal (persisted in localStorage)
   const [weeklyGoal, setWeeklyGoal] = useState(DEFAULT_GOAL);
@@ -850,7 +851,10 @@ export default function DashboardPage() {
                   </p>
                   <div className="flex gap-2">
                     <Button
+                      disabled={paying}
                       onClick={async () => {
+                        if (paying) return;
+                        setPaying(true);
                         try {
                           const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("starter");
                           openRazorpayCheckout({
@@ -867,18 +871,22 @@ export default function DashboardPage() {
                                 });
                                 toast.success("Subscribed to Starter plan!");
                                 window.location.reload();
-                              } catch { toast.error("Verification failed."); }
+                              } catch { toast.error("Verification failed — payment may be captured. Contact support."); }
                             },
                             onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
                           });
                         } catch { toast.error("Failed to start payment."); }
+                        finally { setPaying(false); }
                       }}
                       className="h-9 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-4"
                     >
                       Starter ₹299
                     </Button>
                     <Button
+                      disabled={paying}
                       onClick={async () => {
+                        if (paying) return;
+                        setPaying(true);
                         try {
                           const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("pro");
                           openRazorpayCheckout({
@@ -895,11 +903,12 @@ export default function DashboardPage() {
                                 });
                                 toast.success("Subscribed to Pro plan!");
                                 window.location.reload();
-                              } catch { toast.error("Verification failed."); }
+                              } catch { toast.error("Verification failed — payment may be captured. Contact support."); }
                             },
                             onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
                           });
                         } catch { toast.error("Failed to start payment."); }
+                        finally { setPaying(false); }
                       }}
                       className="h-9 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-4 shadow-lg shadow-white/5 hover:shadow-xl"
                     >
@@ -915,7 +924,10 @@ export default function DashboardPage() {
                   </p>
                   {subscription.plan === "starter" && (
                     <Button
+                      disabled={paying}
                       onClick={async () => {
+                        if (paying) return;
+                        setPaying(true);
                         try {
                           const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("pro");
                           openRazorpayCheckout({
@@ -932,11 +944,12 @@ export default function DashboardPage() {
                                 });
                                 toast.success("Upgraded to Pro plan!");
                                 window.location.reload();
-                              } catch { toast.error("Verification failed."); }
+                              } catch { toast.error("Verification failed — payment may be captured. Contact support."); }
                             },
                             onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
                           });
                         } catch { toast.error("Failed to start payment."); }
+                        finally { setPaying(false); }
                       }}
                       className="h-9 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-4"
                     >

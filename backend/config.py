@@ -25,7 +25,7 @@ CLERK_SECRET_KEY = os.environ.get('CLERK_SECRET_KEY', '')
 CLERK_JWT_ISSUER = os.environ.get('CLERK_JWT_ISSUER', '')
 
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
-OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-oss-20b:free')
+OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-4o-mini')
 VAPI_PUBLIC_KEY = os.environ.get('VAPI_PUBLIC_KEY', '')
 VAPI_ASSISTANT_ID = os.environ.get('VAPI_ASSISTANT_ID', '')
 CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*')

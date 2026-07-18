@@ -43,6 +43,7 @@ export default function SetupPage() {
   const [jobRole, setJobRole] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
   const [duration, setDuration] = useState("");
+  const [paying, setPaying] = useState(false);
 
   const { data: subscription, isLoading: subLoading } = useSubscriptionQuery(!!user);
   const createOrder = useCreateOrderMutation();
@@ -193,7 +194,10 @@ export default function SetupPage() {
                   </Button>
                 ) : overLimit ? (
                     <Button
+                      disabled={paying}
                       onClick={async () => {
+                        if (paying) return;
+                        setPaying(true);
                         try {
                           const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("starter");
                           openRazorpayCheckout({
@@ -210,11 +214,12 @@ export default function SetupPage() {
                                 });
                                 toast.success("Subscribed! You can now start an interview.");
                                 window.location.reload();
-                              } catch { toast.error("Verification failed."); }
+                              } catch { toast.error("Verification failed — payment may be captured. Contact support."); }
                             },
                             onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
                           });
                         } catch { toast.error("Failed to start payment."); }
+                        finally { setPaying(false); }
                       }}
                       className="h-12 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 px-6 text-sm font-semibold hover:bg-amber-400/20"
                     >

@@ -32,6 +32,9 @@ const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const FeedbackPage = lazy(() => import("@/pages/FeedbackPage"));
 
 const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || "";
+if (!clerkPubKey) {
+  console.error("REACT_APP_CLERK_PUBLISHABLE_KEY is not set. Authentication will not work.");
+}
 
 function AppRoutes() {
   const { loading } = useAuth();

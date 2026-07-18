@@ -13,9 +13,14 @@ export function useUpdateProfileMutation() {
 }
 
 export function useSubmitFeedbackMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload) => api.submitFeedback(payload),
     retry: 1,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.interviews });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
+    },
   });
 }
 
@@ -24,7 +29,7 @@ export function useSubmitToolFeedbackMutation() {
   return useMutation({
     mutationFn: (payload) => api.submitToolFeedback(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
     },
   });
 }
