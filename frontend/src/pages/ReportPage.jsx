@@ -400,13 +400,10 @@ export default function ReportPage() {
           <Button
             variant="outline"
             onClick={() => {
-              if (isHistorical) {
-                navigate("/dashboard");
-              } else {
-                reset();
-                navigate("/dashboard");
-              }
-            }}
+
+              navigate("/dashboard");
+            }
+            }
             className="rounded-full h-11 bg-transparent border-white/15 hover:bg-white/5 text-white"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
