@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Flame,
   Star,
+  X,
   Check,
   Minus,
   Plus,
@@ -40,6 +41,7 @@ import { VoxaLogo } from "@/components/VoxaLogo";
 import { useAuth } from "@/context/AuthContext";
 import { useProfileQuery, useDashboardStatsQuery, useInterviewsQuery, useSubscriptionQuery } from "@/hooks/useApiQueries";
 import { useCreateOrderMutation, useVerifyPaymentMutation } from "@/hooks/useApiMutations";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { openRazorpayCheckout } from "@/lib/razorpay";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
@@ -454,6 +456,7 @@ export default function DashboardPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [signingOut, setSigningOut] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Weekly goal (persisted in localStorage)
   const [weeklyGoal, setWeeklyGoal] = useState(DEFAULT_GOAL);
@@ -484,6 +487,11 @@ export default function DashboardPage() {
       setSigningOut(false);
     }
   }, [signout, navigate]);
+
+  const confirmLogout = useCallback(async () => {
+    setShowLogoutModal(false);
+    handleSignOut();
+  }, [handleSignOut]);
 
   const persistGoal = useCallback((n) => {
     const clamped = Math.max(1, Math.min(20, n));
@@ -594,7 +602,7 @@ export default function DashboardPage() {
               <Settings className="h-4 w-4" strokeWidth={1.5} />
             </Link>
             <button
-              onClick={handleSignOut}
+              onClick={() => setShowLogoutModal(true)}
               disabled={signingOut}
               aria-label="Sign out"
               className="h-10 w-10 rounded-full border border-white/10 hover:bg-red-500/10 hover:border-red-400/30 text-zinc-500 hover:text-red-300 flex items-center justify-center transition-all disabled:opacity-40"
@@ -645,7 +653,7 @@ export default function DashboardPage() {
                 {subscription && subscription.interviewsRemaining <= 0 ? (
                   <Button
                     disabled
-                    className="rounded-full bg-white/10 text-zinc-500 h-11 px-6 text-sm font-semibold cursor-not-allowed"
+                    className="rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25 h-11 px-6 text-sm font-semibold cursor-not-allowed"
                     title="You have no remaining interviews. Upgrade to continue."
                   >
                     <AlertTriangle className="mr-2 h-4 w-4" />
@@ -894,7 +902,7 @@ export default function DashboardPage() {
                           });
                         } catch { toast.error("Failed to start payment."); }
                       }}
-                      className="h-9 rounded-full border border-white/20 hover:bg-white/10 text-white text-xs font-semibold px-4"
+                      className="h-9 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-4 shadow-lg shadow-white/5 hover:shadow-xl"
                     >
                       Pro ₹499
                     </Button>
@@ -1342,6 +1350,17 @@ export default function DashboardPage() {
 
         <div className="h-12" />
       </main>
+
+      <ConfirmModal
+        open={showLogoutModal}
+        title="Sign out"
+        message="Are you sure you want to sign out? Your interview history will be waiting when you return."
+        confirmLabel="Sign out"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </div>
   );
 }
