@@ -8,7 +8,6 @@ from openai import AsyncOpenAI
 
 from config import logger, OPENROUTER_API_KEY, OPENROUTER_MODEL, supabase
 from models import FeedbackRequest, FeedbackReport, SkillScores, QuestionEvaluation, PLAN_LIMITS
-from routes_user import consume_interview_credit, refund_interview_credit, check_interview_quota
 
 
 def ensure_user_profile(current_user) -> None:
@@ -16,7 +15,8 @@ def ensure_user_profile(current_user) -> None:
         logger.warning("ensure_user_profile: supabase client or current_user is None, skipping")
         return
 
-    user_id = getattr(current_user, "id", None)
+    from deps import normalize_user_id
+    user_id = normalize_user_id(getattr(current_user, "id", None) or "")
     email = getattr(current_user, "email", "") or ""
     name = getattr(current_user, "name", "") or ""
     if not user_id:
@@ -262,6 +262,7 @@ def _resolve_user(current_user, req: FeedbackRequest):
 
 
 async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) -> FeedbackReport:
+    from routes_user import consume_interview_credit, refund_interview_credit, check_interview_quota
     if not OPENROUTER_API_KEY:
         logger.warning("OPENROUTER_API_KEY missing, returning fallback report.")
         report = fallback_report(req, "OPENROUTER_API_KEY is not configured on the server.")

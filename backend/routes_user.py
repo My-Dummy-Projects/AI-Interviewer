@@ -155,18 +155,20 @@ async def get_profile(current_user=Depends(get_current_user)):
     if not profile:
         name = getattr(current_user, "name", "") or ""
         display_name = name or (email.split("@")[0] if email else f"User_{user_id[:8]}")
+        normalized = normalize_user_id(user_id)
         supabase.table("user_profiles").insert({
-            "user_id": user_id,
+            "user_id": normalized,
             "email": email,
             "display_name": display_name,
             "avatar_url": "",
             "bio": "",
         }).execute()
-        result = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+        result = supabase.table("user_profiles").select("*").eq("user_id", normalized).execute()
         profile = (result.data or [{}])[0]
     elif user_id and profile.get("user_id") != user_id:
         try:
-            supabase.table("user_profiles").update({"user_id": user_id}).eq("email", email).execute()
+            normalized = normalize_user_id(user_id)
+            supabase.table("user_profiles").update({"user_id": normalized}).eq("email", email).execute()
         except Exception:
             pass
 
@@ -336,6 +338,7 @@ def check_and_reset_period(sub: dict) -> dict:
 
 
 def get_or_create_subscription(user_id: str) -> dict:
+    user_id = normalize_user_id(user_id)
     result = supabase.table("user_subscriptions").select("*").eq("user_id", user_id).execute()
     if result.data:
         sub = result.data[0]
@@ -371,6 +374,7 @@ def check_interview_quota(user_id: str) -> dict:
 
 def consume_interview_credit(user_id: str):
     """Atomically consume one interview credit. Returns True on success."""
+    user_id = normalize_user_id(user_id)
     for _ in range(3):
         sub_result = supabase.table("user_subscriptions").select("interviews_used, interviews_allowed").eq("user_id", user_id).execute()
         if not sub_result.data:
@@ -390,6 +394,7 @@ def consume_interview_credit(user_id: str):
 
 def refund_interview_credit(user_id: str):
     """Refund one interview credit (for abandoned interviews)."""
+    user_id = normalize_user_id(user_id)
     sub_result = supabase.table("user_subscriptions").select("interviews_used").eq("user_id", user_id).execute()
     if not sub_result.data:
         return
