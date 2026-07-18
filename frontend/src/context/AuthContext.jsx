@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useUser, useAuth as useClerkAuth, useSignIn, useSignUp } from "@clerk/clerk-react";
-import api, { setBearerToken, setTokenRefresher } from "@/lib/api";
+import api, { setBearerToken, setTokenRefresher, ensureFreshToken } from "@/lib/api";
 import { useProfileQuery, queryKeys } from "@/hooks/useApiQueries";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -134,16 +134,8 @@ export function AuthProvider({ children }) {
   }, [queryClient]);
 
   const getFreshToken = useCallback(async () => {
-    try {
-      const token = await getToken();
-      if (token) {
-        setBearerToken(token);
-      }
-      return token;
-    } catch {
-      return null;
-    }
-  }, [getToken]);
+    return ensureFreshToken();
+  }, []);
 
   const value = {
     user,

@@ -5,6 +5,7 @@ const API = `${BACKEND_URL}/api`;
 
 let _bearerToken = null;
 let _tokenRefresher = null;
+let _refreshPromise = null;
 
 export function setBearerToken(token) {
   _bearerToken = token;
@@ -14,6 +15,20 @@ export function setTokenRefresher(fn) {
   _tokenRefresher = fn;
 }
 
+export async function ensureFreshToken() {
+  if (!_tokenRefresher) return _bearerToken;
+  if (!_refreshPromise) {
+    _refreshPromise = _tokenRefresher().finally(() => {
+      _refreshPromise = null;
+    });
+  }
+  const token = await _refreshPromise;
+  if (token) {
+    _bearerToken = token;
+  }
+  return token;
+}
+
 function authHeaders() {
   if (_bearerToken) {
     return { Authorization: `Bearer ${_bearerToken}` };
@@ -21,13 +36,15 @@ function authHeaders() {
   return {};
 }
 
+// Deduplicated token refresh: if 10 requests fail 401 simultaneously,
+// only one refresh call is made and all retry with the new token.
 axios.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401 && _tokenRefresher && !error.config._retry) {
       error.config._retry = true;
       try {
-        const token = await _tokenRefresher();
+        const token = await ensureFreshToken();
         if (token) {
           _bearerToken = token;
           error.config.headers.Authorization = `Bearer ${token}`;
