@@ -8,8 +8,8 @@ import { getVapi, resetVapi } from "@/lib/vapiClient";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { LoadingScreen, LoadingOverlay } from "@/components/LoadingScreen";
+import api from "@/lib/api";
 import { useConfigQuery } from "@/hooks/useApiQueries";
-import { useSubmitFeedbackMutation } from "@/hooks/useApiMutations";
 import { useAuth } from "@/context/AuthContext";
 
 function fmtTime(sec) {
@@ -66,7 +66,6 @@ export default function InterviewPage() {
   }, [isMuted]);
 
   const { data: configData } = useConfigQuery(true);
-  const submitFeedback = useSubmitFeedbackMutation();
 
   const handleEnd = useCallback(async () => {
     if (submitting) return;
@@ -102,14 +101,14 @@ export default function InterviewPage() {
       }
 
       await getFreshToken();
-      const data = await submitFeedback.mutateAsync(payload);
+      const data = await api.submitFeedback(payload);
       setReport(data);
       navigate("/report");
     } catch (e) {
       toast.error("Could not generate feedback. Please try again.");
       setSubmitting(false);
     }
-  }, [setup, submitting, navigate, setReport, reset, getFreshToken, user, submitFeedback]);
+  }, [setup, submitting, navigate, setReport, reset, getFreshToken, user]);
   handleEndRef.current = handleEnd;
 
   useEffect(() => {

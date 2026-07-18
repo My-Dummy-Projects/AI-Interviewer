@@ -39,7 +39,7 @@ export function AuthProvider({ children }) {
       }
     };
     init();
-    setTokenRefresher(() => getToken);
+    setTokenRefresher(() => getToken());
     return () => setTokenRefresher(null);
   }, [isLoaded, isSignedIn, getToken]);
 
