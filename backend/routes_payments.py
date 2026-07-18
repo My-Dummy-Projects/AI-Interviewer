@@ -1,7 +1,10 @@
 import razorpay
+import razorpay.errors
 import hmac
 import hashlib
 import json
+import traceback
+import time
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -10,8 +13,13 @@ from config import supabase, logger, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZOR
 from deps import get_current_user, normalize_user_id
 from models import CreateOrderRequest, CreateOrderResponse, VerifyPaymentRequest, PLAN_LIMITS, PLAN_RANK
 
-client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 api_router_payments = APIRouter(prefix="/api/payments")
+
+
+def _get_razorpay_client():
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        raise RuntimeError("Razorpay key or secret not configured")
+    return razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 
 @api_router_payments.get("/config")
@@ -21,28 +29,34 @@ async def get_payment_config():
 
 @api_router_payments.post("/create-order", response_model=CreateOrderResponse)
 async def create_order(req: CreateOrderRequest, current_user=Depends(get_current_user)):
-    if req.planId not in PLAN_LIMITS:
-        raise HTTPException(status_code=400, detail=f"Invalid plan: {req.planId}")
-    if req.planId == "free":
-        raise HTTPException(status_code=400, detail="Cannot create order for free plan")
-
-    plan_config = PLAN_LIMITS[req.planId]
-    amount_in_paise = plan_config["price_inr"]
-
-    # Check for duplicate active subscription
-    uid = normalize_user_id(current_user.id)
-    sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", uid).execute()
-    current_sub = sub_result.data[0] if sub_result.data else None
-    current_plan = (current_sub or {}).get("plan", "free")
-
-    if current_plan == req.planId and (current_sub or {}).get("status") == "active":
-        raise HTTPException(status_code=400, detail=f"You are already on the {req.planId} plan.")
-
     try:
+        if req.planId not in PLAN_LIMITS:
+            raise HTTPException(status_code=400, detail=f"Invalid plan: {req.planId}")
+        if req.planId == "free":
+            raise HTTPException(status_code=400, detail="Cannot create order for free plan")
+
+        plan_config = PLAN_LIMITS[req.planId]
+        amount_in_paise = plan_config["price_inr"]
+
+        uid = normalize_user_id(current_user.id)
+        if not uid:
+            raise HTTPException(status_code=400, detail="Invalid user ID")
+
+        if not supabase:
+            raise HTTPException(status_code=500, detail="Database not available")
+
+        sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", uid).execute()
+        current_sub = sub_result.data[0] if sub_result.data else None
+        current_plan = (current_sub or {}).get("plan", "free")
+
+        if current_plan == req.planId and (current_sub or {}).get("status") == "active":
+            raise HTTPException(status_code=400, detail=f"You are already on the {req.planId} plan.")
+
+        client = _get_razorpay_client()
         order = client.order.create({
             "amount": amount_in_paise,
             "currency": "INR",
-            "receipt": f"plan_{req.planId}_{current_user.id[:12]}_{datetime.now(timezone.utc).timestamp()}",
+            "receipt": f"{req.planId[:4]}_{current_user.id[-6:]}_{int(time.time())}",
             "notes": {
                 "user_id": current_user.id,
                 "plan_id": req.planId,
@@ -59,9 +73,17 @@ async def create_order(req: CreateOrderRequest, current_user=Depends(get_current
             userEmail=getattr(current_user, "email", ""),
             userName=getattr(current_user, "name", ""),
         )
+    except HTTPException:
+        raise
+    except razorpay.errors.BadRequestError as e:
+        logger.error(f"Razorpay bad request: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except razorpay.errors.GatewayError as e:
+        logger.error(f"Razorpay gateway error: {e}")
+        raise HTTPException(status_code=502, detail="Payment gateway error")
     except Exception as e:
-        logger.error(f"Razorpay order creation failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create order")
+        logger.error(f"Order creation failed: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to create order: {e}")
 
 
 @api_router_payments.post("/verify-payment")
@@ -76,6 +98,7 @@ async def verify_payment(req: VerifyPaymentRequest, current_user=Depends(get_cur
         raise HTTPException(status_code=400, detail="Invalid payment signature")
 
     try:
+        client = _get_razorpay_client()
         order = client.order.fetch(req.razorpay_order_id)
         notes = order.get("notes", {})
         plan_id = notes.get("plan_id", "free")
@@ -125,8 +148,8 @@ async def verify_payment(req: VerifyPaymentRequest, current_user=Depends(get_cur
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Payment verification failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update subscription")
+        logger.error(f"Payment verification failed: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Payment verification failed: {e}")
 
 
 @api_router_payments.post("/webhook")

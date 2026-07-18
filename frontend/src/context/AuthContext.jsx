@@ -29,18 +29,24 @@ export function AuthProvider({ children }) {
       setTokenReady(true);
       return;
     }
+    let cancelled = false;
     const init = async () => {
       try {
         const token = await getToken();
-        setBearerToken(token);
-        setTokenReady(true);
+        if (cancelled) return;
+        if (token) {
+          setBearerToken(token);
+          setTokenReady(true);
+        }
       } catch {
-        setTokenReady(true);
+        if (!cancelled) {
+          setTimeout(init, 2000);
+        }
       }
     };
     init();
     setTokenRefresher(() => getToken());
-    return () => setTokenRefresher(null);
+    return () => { cancelled = true; setTokenRefresher(null); };
   }, [isLoaded, isSignedIn, getToken]);
 
   useEffect(() => {
