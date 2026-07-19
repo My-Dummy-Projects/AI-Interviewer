@@ -600,7 +600,7 @@ export default function DashboardPage() {
                 {profile?.display_name?.charAt(0)?.toUpperCase() || "U"}
               </div>
               <span className="text-sm text-zinc-400 group-hover:text-white transition-colors max-w-[140px] truncate font-medium">
-                {profile?.display_name || "User"}
+                {(profile?.display_name || "User").charAt(0).toUpperCase() + (profile?.display_name || "User").slice(1) || "User"}
               </span>
             </Link>
             <Link
