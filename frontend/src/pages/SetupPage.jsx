@@ -16,9 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { useSubscriptionQuery } from "@/hooks/useApiQueries";
-import { useCreateOrderMutation, useVerifyPaymentMutation } from "@/hooks/useApiMutations";
-import { openRazorpayCheckout } from "@/lib/razorpay";
-import { toast } from "sonner";
+
 
 const EXPERIENCE_LEVELS = [
   { value: "Intern", label: "Intern" },
@@ -43,11 +41,7 @@ export default function SetupPage() {
   const [jobRole, setJobRole] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
   const [duration, setDuration] = useState("");
-  const [paying, setPaying] = useState(false);
-
   const { data: subscription, isLoading: subLoading } = useSubscriptionQuery(!!user);
-  const createOrder = useCreateOrderMutation();
-  const verifyPayment = useVerifyPaymentMutation();
 
   const maxDuration = subscription?.maxDurationMinutes ?? 15;
   const DURATIONS = ALL_DURATIONS.filter((d) => parseInt(d.value) <= maxDuration);
@@ -192,38 +186,11 @@ export default function SetupPage() {
                     Checking...
                   </Button>
                 ) : overLimit ? (
-                  <Button
-                    disabled={paying}
-                    onClick={async () => {
-                      if (paying) return;
-                      setPaying(true);
-                      try {
-                        const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("starter");
-                        openRazorpayCheckout({
-                          keyId, orderId, amount, currency,
-                          name: "Voxa",
-                          description: "Starter Plan - ₹299/month",
-                          prefill: { name: userName, email: userEmail },
-                          onSuccess: async (response) => {
-                            try {
-                              await verifyPayment.mutateAsync({
-                                razorpay_order_id: response.razorpay_order_id,
-                                razorpay_payment_id: response.razorpay_payment_id,
-                                razorpay_signature: response.razorpay_signature,
-                              });
-                              toast.success("Subscribed! You can now start an interview.");
-                              window.location.reload();
-                            } catch { toast.error("Verification failed — payment may be captured. Contact support."); }
-                          },
-                          onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
-                        });
-                      } catch { toast.error("Failed to start payment."); }
-                      finally { setPaying(false); }
-                    }}
-                    className="h-12 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 px-6 text-sm font-semibold hover:bg-amber-400/20"
-                  >
-                    Upgrade to start
-                  </Button>
+                  <Link to="/pricing">
+                    <Button className="h-12 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 px-6 text-sm font-semibold hover:bg-amber-400/20">
+                      Upgrade to continue
+                    </Button>
+                  </Link>
                 ) : (
                   <Button
                     data-testid="start-interview-button"

@@ -30,6 +30,7 @@ const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const FeedbackPage = lazy(() => import("@/pages/FeedbackPage"));
+const PricingPage = lazy(() => import("@/pages/PricingPage"));
 
 const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || "";
 if (!clerkPubKey) {
@@ -40,7 +41,7 @@ function AppRoutes() {
   const { loading } = useAuth();
   const location = useLocation();
 
-  const publicPaths = ["/", "/signin", "/signup", "/forgot-password", "/reset-password"];
+  const publicPaths = ["/", "/signin", "/signup", "/forgot-password", "/reset-password", "/pricing"];
   const isPublicPage = publicPaths.includes(location.pathname);
 
   if (loading && !isPublicPage) {
@@ -61,6 +62,7 @@ function AppRoutes() {
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/feedback" element={<FeedbackPage />} />
+      <Route path="/pricing" element={<PricingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

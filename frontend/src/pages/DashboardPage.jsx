@@ -40,9 +40,7 @@ import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { useAuth } from "@/context/AuthContext";
 import { useProfileQuery, useDashboardStatsQuery, useInterviewsQuery, useSubscriptionQuery } from "@/hooks/useApiQueries";
-import { useCreateOrderMutation, useVerifyPaymentMutation } from "@/hooks/useApiMutations";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
-import { openRazorpayCheckout } from "@/lib/razorpay";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
 
@@ -466,16 +464,12 @@ export default function DashboardPage() {
   const { data: interviews = [], isLoading: interviewsLoading } = useInterviewsQuery(!!user);
   const { data: subscription } = useSubscriptionQuery(!!user);
 
-  const createOrder = useCreateOrderMutation();
-  const verifyPayment = useVerifyPaymentMutation();
-
   const [searchQuery, setSearchQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState("All Levels");
   const [showFilters, setShowFilters] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [signingOut, setSigningOut] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [paying, setPaying] = useState(false);
 
   // Weekly goal (persisted in localStorage)
   const [weeklyGoal, setWeeklyGoal] = useState(DEFAULT_GOAL);
@@ -748,24 +742,13 @@ export default function DashboardPage() {
                     )}
 
                     {/* Upgrade CTA — inside subscription card */}
-                    {subscription.plan === "free" && (
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.06]">
-                        <span className="text-xs text-zinc-500 font-medium shrink-0">Upgrade:</span>
-                        <div className="flex gap-1.5 flex-1">
-                          <Button disabled={paying} onClick={async () => { if (paying) return; setPaying(true); try { const r = await createOrder.mutateAsync("starter"); openRazorpayCheckout({ keyId: r.keyId, orderId: r.orderId, amount: r.amount, currency: r.currency, name: "Voxa", description: "Starter Plan - ₹299/month", prefill: { name: r.userName, email: r.userEmail }, onSuccess: async (res) => { try { await verifyPayment.mutateAsync({ razorpay_order_id: res.razorpay_order_id, razorpay_payment_id: res.razorpay_payment_id, razorpay_signature: res.razorpay_signature }); toast.success("Subscribed to Starter!"); window.location.reload(); } catch { toast.error("Verification failed."); } }, onError: (m) => { if (m !== "Payment cancelled") toast.error(m); } }); } catch { toast.error("Failed."); } finally { setPaying(false); } }} className="h-7 rounded-full border border-white/15 hover:bg-white/5 text-white text-xs font-medium px-3 transition-all flex-1">
-                            Starter ₹299
-                          </Button>
-                          <Button disabled={paying} onClick={async () => { if (paying) return; setPaying(true); try { const r = await createOrder.mutateAsync("pro"); openRazorpayCheckout({ keyId: r.keyId, orderId: r.orderId, amount: r.amount, currency: r.currency, name: "Voxa", description: "Pro Plan - ₹499/month", prefill: { name: r.userName, email: r.userEmail }, onSuccess: async (res) => { try { await verifyPayment.mutateAsync({ razorpay_order_id: res.razorpay_order_id, razorpay_payment_id: res.razorpay_payment_id, razorpay_signature: res.razorpay_signature }); toast.success("Subscribed to Pro!"); window.location.reload(); } catch { toast.error("Verification failed."); } }, onError: (m) => { if (m !== "Payment cancelled") toast.error(m); } }); } catch { toast.error("Failed."); } finally { setPaying(false); } }} className="h-7 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-3 transition-all flex-1">
-                            Pro ₹499
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                    {subscription.plan === "starter" && (
+                    {(subscription.plan === "free" || subscription.plan === "starter") && (
                       <div className="mt-3 pt-3 border-t border-white/[0.06]">
-                        <Button disabled={paying} onClick={async () => { if (paying) return; setPaying(true); try { const r = await createOrder.mutateAsync("pro"); openRazorpayCheckout({ keyId: r.keyId, orderId: r.orderId, amount: r.amount, currency: r.currency, name: "Voxa", description: "Pro Plan - ₹499/month", prefill: { name: r.userName, email: r.userEmail }, onSuccess: async (res) => { try { await verifyPayment.mutateAsync({ razorpay_order_id: res.razorpay_order_id, razorpay_payment_id: res.razorpay_payment_id, razorpay_signature: res.razorpay_signature }); toast.success("Upgraded to Pro!"); window.location.reload(); } catch { toast.error("Verification failed."); } }, onError: (m) => { if (m !== "Payment cancelled") toast.error(m); } }); } catch { toast.error("Failed."); } finally { setPaying(false); } }} className="h-8 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-5 transition-all w-full">
-                          Upgrade to Pro &rarr;
-                        </Button>
+                        <Link to="/pricing">
+                          <Button className="h-8 rounded-full bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-5 transition-all w-full">
+                            View Plans &rarr;
+                          </Button>
+                        </Link>
                       </div>
                     )}
                   </div>
@@ -814,10 +797,12 @@ export default function DashboardPage() {
                 </div>
               </div>
               {subscription && subscription.interviewsRemaining <= 0 ? (
-                <Button disabled className="rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25 h-12 px-7 text-sm font-semibold cursor-not-allowed shrink-0">
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Upgrade to continue
-                </Button>
+                <Link to="/pricing">
+                  <Button className="rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25 h-12 px-7 text-sm font-semibold hover:bg-amber-400/20 shrink-0">
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    Upgrade to continue
+                  </Button>
+                </Link>
               ) : (
                 <Link to="/setup">
                   <Button
@@ -854,8 +839,8 @@ export default function DashboardPage() {
                 { value: stats.totalInterviews, label: "Interviews", accent: "text-5xl", delta: weekAggregates.thisWeek - weekAggregates.lastWeek },
                 { value: stats.averageScore, label: "Avg score", accent: "text-5xl text-cyan-300" },
                 { value: stats.bestScore, label: "Best score", accent: "text-5xl text-emerald-400" },
-                { value: `${stats.totalPracticeMinutes}m`, label: "Practice", accent: "text-4xl" },
-                { value: interviews.length >= 2 ? `+${Math.max(0, interviews[0].overallScore - interviews[interviews.length - 1].overallScore)}` : "\u2014", label: "Improve", accent: "text-4xl" },
+                { value: `${stats.totalPracticeMinutes}m`, label: "Practice", accent: "text-5xl" },
+                { value: interviews.length >= 2 ? `+${Math.max(0, interviews[0].overallScore - interviews[interviews.length - 1].overallScore)}` : "\u2014", label: "Improve", accent: "text-5xl" },
                 { value: weekAggregates.thisWeek >= weeklyGoal ? "Done \u2713" : `${weeklyGoal - weekAggregates.thisWeek}`, label: "To go", accent: "text-4xl" },
               ].map(({ value, label, accent, delta }, i) => (
                 <motion.div
