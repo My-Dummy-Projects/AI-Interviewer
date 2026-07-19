@@ -1065,10 +1065,9 @@ export default function DashboardPage() {
       <ConfirmModal
         open={showLogoutModal}
         title="Sign out"
-        message="Are you sure you want to sign out? Your interview history will be waiting when you return."
+        message="Your interview history will be waiting when you return."
         confirmLabel="Sign out"
         cancelLabel="Cancel"
-        variant="danger"
         onConfirm={confirmLogout}
         onCancel={() => setShowLogoutModal(false)}
       />

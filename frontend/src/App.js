@@ -38,7 +38,7 @@ if (!clerkPubKey) {
 }
 
 function AppRoutes() {
-  const { loading } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
   const publicPaths = ["/", "/signin", "/signup", "/forgot-password", "/reset-password", "/pricing"];
@@ -46,6 +46,10 @@ function AppRoutes() {
 
   if (loading && !isPublicPage) {
     return <LoadingScreen message="Loading Voxa..." submessage="Preparing your experience" />;
+  }
+
+  if (!loading && !user && !isPublicPage) {
+    return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
   }
 
   return (
