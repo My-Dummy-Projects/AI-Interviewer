@@ -1,9 +1,9 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function ConfirmModal({ open, title, message, confirmLabel, cancelLabel, onConfirm, onCancel, variant }) {
+export function ConfirmModal({ open, title, message, confirmLabel, cancelLabel, onConfirm, onCancel }) {
   return (
     <AnimatePresence>
       {open && (
@@ -12,55 +12,46 @@ export function ConfirmModal({ open, title, message, confirmLabel, cancelLabel, 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.2 }}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={onCancel}
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+            initial={{ opacity: 0, scale: 0.92, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 8 }}
-            transition={{ duration: 0.2 }}
-            className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl"
+            exit={{ opacity: 0, scale: 0.92, y: 12 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-[#0a0a0a] p-8 shadow-2xl"
           >
             <button
               onClick={onCancel}
-              className="absolute top-4 right-4 h-7 w-7 rounded-full border border-white/10 hover:bg-white/5 flex items-center justify-center text-zinc-500 hover:text-white transition-colors"
+              className="absolute top-3 right-3 h-8 w-8 rounded-full flex items-center justify-center text-zinc-600 hover:text-zinc-300 hover:bg-white/5 transition-all"
             >
-              <X className="h-3.5 w-3.5" strokeWidth={2} />
+              <X className="h-4 w-4" strokeWidth={1.5} />
             </button>
 
-            <div className="flex items-start gap-4">
-              <div className="h-10 w-10 rounded-xl bg-red-400/10 border border-red-400/20 flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-5 w-5 text-red-400" strokeWidth={1.5} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base font-semibold text-white" style={{ fontFamily: "var(--font-heading)" }}>
-                  {title}
-                </h3>
-                {message && (
-                  <p className="mt-1.5 text-sm text-zinc-400 leading-relaxed">
-                    {message}
-                  </p>
-                )}
-              </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-white" style={{ fontFamily: "var(--font-heading)" }}>
+                {title}
+              </h3>
+              {message && (
+                <p className="mt-2 text-sm text-zinc-400 leading-relaxed">
+                  {message}
+                </p>
+              )}
             </div>
 
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="mt-7 flex items-center gap-3">
               <Button
                 onClick={onCancel}
                 variant="outline"
-                className="rounded-full h-10 px-5 bg-transparent border-white/15 hover:bg-white/5 text-white text-sm"
+                className="flex-1 rounded-full h-11 px-5 bg-transparent border-white/15 hover:bg-white/5 text-white text-sm font-medium"
               >
                 {cancelLabel || "Cancel"}
               </Button>
               <Button
                 onClick={onConfirm}
-                className={`rounded-full h-10 px-5 text-sm font-semibold ${
-                  variant === "danger"
-                    ? "bg-red-500 hover:bg-red-400 text-white"
-                    : "bg-white hover:bg-zinc-200 text-black"
-                }`}
+                className="flex-1 rounded-full h-11 px-5 text-sm font-semibold bg-cyan-500 hover:bg-cyan-400 text-black"
               >
                 {confirmLabel || "Confirm"}
               </Button>

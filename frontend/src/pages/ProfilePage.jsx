@@ -14,6 +14,12 @@ import {
   EyeOff,
   ChevronDown,
   ChevronUp,
+  Shield,
+  Calendar,
+  Zap,
+  Trash2,
+  CheckCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,15 +28,34 @@ import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { useAuth } from "@/context/AuthContext";
 import { useUser } from "@clerk/clerk-react";
-import { useProfileQuery } from "@/hooks/useApiQueries";
+import { useProfileQuery, useSubscriptionQuery } from "@/hooks/useApiQueries";
 import { useUpdateProfileMutation } from "@/hooks/useApiMutations";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
+
+const PLAN_LABELS = { free: "Free", starter: "Starter", pro: "Pro" };
+
+function fmtDate(dateStr) {
+  if (!dateStr) return "N/A";
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  } catch {
+    return dateStr;
+  }
+}
+
+function pct(a, b) {
+  if (!b || b === 0) return 0;
+  return Math.min(Math.round((a / b) * 100), 100);
+}
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, loading: authLoading, signout } = useAuth();
   const { data: profile, isLoading: profileLoading } = useProfileQuery(!!user);
+  const { data: subscription } = useSubscriptionQuery(!!user);
+
   const [saving, setSaving] = useState(false);
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
@@ -80,8 +105,8 @@ export default function ProfilePage() {
       toast.error("New passwords do not match");
       return;
     }
-    if (newPassword.length < 6) {
-      toast.error("New password must be at least 6 characters");
+    if (newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters");
       return;
     }
     setPasswordSaving(true);
@@ -115,6 +140,11 @@ export default function ProfilePage() {
     return <LoadingScreen message="Loading profile..." />;
   }
 
+  const planName = subscription?.plan ? PLAN_LABELS[subscription.plan] || subscription.plan : "Free";
+  const remaining = subscription?.interviewsRemaining ?? 0;
+  const allowed = subscription?.interviewsAllowed ?? 2;
+  const usagePct = pct(allowed - remaining, allowed);
+
   return (
     <div className="relative min-h-screen bg-[#050505] text-white overflow-x-hidden">
       <div className="absolute inset-0 grid-bg opacity-30 pointer-events-none" />
@@ -123,60 +153,100 @@ export default function ProfilePage() {
       <Navbar
         left={
           <>
-            <Link to={user ? '/dashboard' : '/'} data-testid="profile-nav-logo">
-              <VoxaLogo size={28} />
+            <Link to={user ? "/dashboard" : "/"} data-testid="profile-nav-logo">
+              <VoxaLogo size={22} />
             </Link>
-            <div className="hidden md:block h-5 w-px bg-white/10" />
-            <div className="hidden md:block label-overline">Profile Settings</div>
+            <div className="hidden md:block h-5 w-px bg-white" />
+            <div className="hidden md:block label-overline">Settings</div>
           </>
         }
         right={
           <Link to="/dashboard">
             <Button variant="outline" className="rounded-full bg-transparent border-white/15 hover:bg-white/5 text-white h-9 px-4 text-sm">
               <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" />
-              Dashboard
+              <span className="text-sm text-zinc-400 group-hover:text-white transition-colors max-w-[140px] truncate font-medium">
+                Dashboard
+              </span>
             </Button>
           </Link>
         }
       />
 
-      <main className="relative max-w-4xl mx-auto px-6 py-8 md:py-10">
+      <main className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <div className="flex items-center gap-3 mb-8">
           <Link to="/dashboard" className="text-zinc-500 hover:text-white transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
             <h1 className="text-3xl font-black tracking-tighter text-white" style={{ fontFamily: "var(--font-heading)" }}>
-              Profile Settings
+              Settings
             </h1>
-            <p className="text-sm text-zinc-400 mt-1">Manage your personal information and preferences.</p>
+            <p className="text-sm text-zinc-400 mt-1">Manage your profile, plan, and account preferences.</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Avatar card */}
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* ── Left sidebar ── */}
+          <div className="lg:col-span-4 space-y-6">
             <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 text-center">
-              <div className="h-20 w-20 mx-auto rounded-full bg-gradient-to-b from-white/10 to-white/[0.02] border border-white/10 flex items-center justify-center">
-                <User className="h-9 w-9 text-zinc-300" strokeWidth={1.5} />
+              <div className="h-20 w-20 mx-auto rounded-full bg-gradient-to-br from-cyan-400 to-emerald-400 flex items-center justify-center text-2xl font-bold text-black shadow-lg">
+                {profile?.display_name?.charAt(0)?.toUpperCase() || "U"}
               </div>
               <h2 className="mt-4 text-lg font-semibold text-white" style={{ fontFamily: "var(--font-heading)" }}>
                 {profile?.display_name || "User"}
               </h2>
               <p className="text-xs text-zinc-500 mt-1">{profile?.email || ""}</p>
+
+              <div className="mt-6 pt-6 border-t border-white/5 space-y-4 text-left">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-zinc-400">
+                    <Shield className="h-4 w-4" strokeWidth={1.5} />
+                    <span>Plan</span>
+                  </div>
+                  <span className="text-sm font-semibold text-white capitalize">{planName}</span>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-sm text-zinc-400">
+                      <Zap className="h-4 w-4" strokeWidth={1.5} />
+                      <span>Interviews</span>
+                    </div>
+                    <span className="text-sm text-zinc-300">
+                      <span className="text-white font-medium">{remaining}</span>
+                      <span className="text-zinc-500"> / {allowed}</span>
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-cyan-400 rounded-full transition-all duration-500"
+                      style={{ width: `${usagePct}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-zinc-400">
+                    <Calendar className="h-4 w-4" strokeWidth={1.5} />
+                    <span>Member since</span>
+                  </div>
+                  <span className="text-sm text-zinc-300">{fmtDate(profile?.created_at)}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Profile form */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* ── Main content ── */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Personal Information */}
             <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 md:p-8">
               <h2 className="text-lg font-semibold text-white" style={{ fontFamily: "var(--font-heading)" }}>
-                Personal Information
+                Personal information
               </h2>
               <div className="mt-6 space-y-5 max-w-lg">
                 <div>
                   <Label htmlFor="display-name" className="label-overline mb-2 block">
-                    Display Name
+                    Display name
                   </Label>
                   <Input
                     id="display-name"
@@ -184,7 +254,7 @@ export default function ProfilePage() {
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     placeholder="Your display name"
-                    className="h-12 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-base text-white placeholder:text-zinc-600"
+                    className="h-11 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-sm text-white placeholder:text-zinc-600"
                   />
                 </div>
 
@@ -192,14 +262,13 @@ export default function ProfilePage() {
                   <Label htmlFor="email-display" className="label-overline mb-2 block">
                     Email
                   </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                    <Input
-                      id="email-display"
-                      value={profile?.email || ""}
-                      disabled
-                      className="h-12 rounded-lg bg-white/[0.03] border-white/10 text-base text-zinc-400 cursor-not-allowed pl-10"
-                    />
+                  <div className="flex items-center gap-3 h-11 px-3 rounded-lg bg-white/[0.02] border border-white/10">
+                    <Mail className="h-4 w-4 text-zinc-500 shrink-0" strokeWidth={1.5} />
+                    <span className="text-sm text-zinc-300 flex-1">{profile?.email || ""}</span>
+                    <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-medium">
+                      <CheckCircle className="h-3.5 w-3.5" strokeWidth={2} />
+                      Verified
+                    </span>
                   </div>
                 </div>
 
@@ -214,7 +283,7 @@ export default function ProfilePage() {
                     onChange={(e) => setEditBio(e.target.value)}
                     placeholder="Tell us a bit about yourself"
                     rows={3}
-                    className="flex w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm h-auto min-h-[80px] bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-white placeholder:text-zinc-600"
+                    className="flex w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 transition-colors focus-visible:outline-none focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 h-auto min-h-[80px] resize-none"
                   />
                 </div>
 
@@ -222,7 +291,7 @@ export default function ProfilePage() {
                   onClick={handleSaveProfile}
                   disabled={saving}
                   data-testid="profile-save-button"
-                  className="h-11 rounded-full bg-white hover:bg-zinc-200 text-black px-6 text-sm font-semibold tracking-wide disabled:bg-white/10 disabled:text-zinc-600"
+                  className="h-10 rounded-full bg-white hover:bg-zinc-200 text-black px-5 text-sm font-semibold disabled:bg-white/10 disabled:text-zinc-600"
                 >
                   {saving ? (
                     <>
@@ -239,27 +308,21 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Account settings */}
+            {/* Account & Security */}
             <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 md:p-8">
               <h2 className="text-lg font-semibold text-white" style={{ fontFamily: "var(--font-heading)" }}>
-                Account
+                Account & security
               </h2>
-              <div className="mt-6 space-y-4 max-w-lg">
-                <div className="flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02]">
-                  <Bell className="h-5 w-5 text-zinc-400 shrink-0" strokeWidth={1.5} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white">Email Notifications</p>
-                    <p className="text-xs text-zinc-500">Coming soon</p>
-                  </div>
-                </div>
+              <div className="mt-6 space-y-3 max-w-lg">
+                {/* Change Password */}
                 <button
                   onClick={() => setPasswordOpen(!passwordOpen)}
                   className="w-full flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors text-left"
                 >
                   <KeyRound className="h-5 w-5 text-zinc-400 shrink-0" strokeWidth={1.5} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white">Password</p>
-                    <p className="text-xs text-zinc-500">Change or update your password</p>
+                    <p className="text-sm font-medium text-white">Change password</p>
+                    <p className="text-xs text-zinc-500">Update your account password</p>
                   </div>
                   {passwordOpen ? (
                     <ChevronUp className="h-4 w-4 text-zinc-400 shrink-0" />
@@ -271,7 +334,7 @@ export default function ProfilePage() {
                 {passwordOpen && (
                   <form onSubmit={handleChangePassword} className="space-y-4 pl-1">
                     <div>
-                      <Label htmlFor="current-password" className="label-overline mb-2 block">Current Password</Label>
+                      <Label htmlFor="current-password" className="label-overline mb-2 block">Current password</Label>
                       <div className="relative">
                         <Input
                           id="current-password"
@@ -279,7 +342,7 @@ export default function ProfilePage() {
                           value={currentPassword}
                           onChange={(e) => setCurrentPassword(e.target.value)}
                           placeholder="Enter current password"
-                          className="h-12 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-base text-white placeholder:text-zinc-600 pr-10"
+                          className="h-11 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-sm text-white placeholder:text-zinc-600 pr-10"
                           required
                           autoFocus
                         />
@@ -294,27 +357,27 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="new-password" className="label-overline mb-2 block">New Password</Label>
+                      <Label htmlFor="new-password" className="label-overline mb-2 block">New password</Label>
                       <Input
                         id="new-password"
                         type={showPasswords ? "text" : "password"}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Min. 6 characters"
-                        className="h-12 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-base text-white placeholder:text-zinc-600"
+                        placeholder="Min. 8 characters"
+                        className="h-11 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-sm text-white placeholder:text-zinc-600"
                         required
-                        minLength={6}
+                        minLength={8}
                       />
                     </div>
                     <div>
-                      <Label htmlFor="confirm-password" className="label-overline mb-2 block">Confirm New Password</Label>
+                      <Label htmlFor="confirm-password" className="label-overline mb-2 block">Confirm new password</Label>
                       <Input
                         id="confirm-password"
                         type={showPasswords ? "text" : "password"}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="Re-enter new password"
-                        className="h-12 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-base text-white placeholder:text-zinc-600"
+                        className="h-11 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-sm text-white placeholder:text-zinc-600"
                         required
                       />
                     </div>
@@ -322,7 +385,7 @@ export default function ProfilePage() {
                       <Button
                         type="submit"
                         disabled={!currentPassword || !newPassword || !confirmPassword || passwordSaving}
-                        className="h-10 rounded-full bg-white hover:bg-zinc-200 text-black px-5 text-sm font-semibold tracking-wide disabled:bg-white/10 disabled:text-zinc-600"
+                        className="h-10 rounded-full bg-white hover:bg-zinc-200 text-black px-5 text-sm font-semibold disabled:bg-white/10 disabled:text-zinc-600"
                       >
                         {passwordSaving ? (
                           <>
@@ -344,19 +407,56 @@ export default function ProfilePage() {
                     </div>
                   </form>
                 )}
+
+                {/* Email Notifications */}
+                <div className="flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02]">
+                  <Bell className="h-5 w-5 text-zinc-400 shrink-0" strokeWidth={1.5} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white">Email notifications</p>
+                    <p className="text-xs text-zinc-500">Coming soon</p>
+                  </div>
+                </div>
+
+                {/* Sign Out */}
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors text-left"
+                >
+                  <LogOut className="h-5 w-5 text-zinc-400 shrink-0" strokeWidth={1.5} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white">Sign out</p>
+                    <p className="text-xs text-zinc-500">Sign out of your account</p>
+                  </div>
+                </button>
               </div>
             </div>
 
-            {/* Sign out */}
-            <div className="flex justify-end">
-              <button
-                onClick={handleSignOut}
-                aria-label="Sign out"
-                className="flex items-center gap-2 text-sm text-zinc-500 hover:text-red-300 transition-colors"
-              >
-                <LogOut className="h-4 w-4" />
-                Sign out
-              </button>
+            {/* Danger Zone */}
+            <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.02] p-6 md:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-8 w-8 rounded-lg bg-red-400/10 border border-red-400/20 flex items-center justify-center">
+                  <AlertTriangle className="h-4 w-4 text-red-400" strokeWidth={1.5} />
+                </div>
+                <h2 className="text-lg font-semibold text-white" style={{ fontFamily: "var(--font-heading)" }}>
+                  Danger zone
+                </h2>
+              </div>
+              <div className="max-w-lg">
+                <div className="flex items-center gap-4 p-4 rounded-xl border border-red-400/10 bg-red-400/[0.03]">
+                  <Trash2 className="h-5 w-5 text-red-400 shrink-0" strokeWidth={1.5} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white">Delete account</p>
+                    <p className="text-xs text-zinc-500">Permanently delete your account and all data</p>
+                  </div>
+                  <Button
+                    disabled
+                    variant="outline"
+                    className="rounded-full h-9 px-4 text-xs font-medium bg-transparent border-red-400/30 text-red-400 cursor-not-allowed shrink-0"
+                  >
+                    Coming soon
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -13,9 +13,7 @@ import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { SkeletonReport } from "@/components/LoadingScreen";
 import { useInterviewQuery, useSubscriptionQuery } from "@/hooks/useApiQueries";
-import { useCreateOrderMutation, useVerifyPaymentMutation } from "@/hooks/useApiMutations";
-import { openRazorpayCheckout } from "@/lib/razorpay";
-import { toast } from "sonner";
+
 
 const RECS = {
   "Strong Hire": { color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" },
@@ -60,13 +58,9 @@ export default function ReportPage() {
   const { id } = useParams();
   const { report: ctxReport, setup: ctxSetup, reset } = useInterview();
   const [interviewData, setInterviewData] = useState(location.state?.interview || null);
-  const [paying, setPaying] = useState(false);
-
   const isHistorical = Boolean(id);
   const { data: fetchedInterview, isLoading: interviewLoading } = useInterviewQuery(id, isHistorical && !interviewData);
   const { data: subscription } = useSubscriptionQuery(true);
-  const createOrder = useCreateOrderMutation();
-  const verifyPayment = useVerifyPaymentMutation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -368,38 +362,11 @@ export default function ReportPage() {
               Upgrade to a paid plan to unlock your personalized learning plan with actionable
               next steps, topic recommendations, and practice drills tailored to your performance.
             </p>
-            <Button
-              disabled={paying}
-              onClick={async () => {
-                if (paying) return;
-                setPaying(true);
-                try {
-                  const { orderId, amount, currency, keyId, userEmail, userName } = await createOrder.mutateAsync("starter");
-                  openRazorpayCheckout({
-                    keyId, orderId, amount, currency,
-                    name: "Voxa",
-                    description: "Starter Plan - ₹299/month",
-                    prefill: { name: userName, email: userEmail },
-                    onSuccess: async (response) => {
-                      try {
-                        await verifyPayment.mutateAsync({
-                          razorpay_order_id: response.razorpay_order_id,
-                          razorpay_payment_id: response.razorpay_payment_id,
-                          razorpay_signature: response.razorpay_signature,
-                        });
-                        toast.success("Subscribed! Learning plan unlocked.");
-                        window.location.reload();
-                      } catch { toast.error("Verification failed — payment may be captured. Contact support."); }
-                    },
-                    onError: (msg) => { if (msg !== "Payment cancelled") toast.error(msg); },
-                  });
-                } catch { toast.error("Failed to start payment."); }
-                finally { setPaying(false); }
-              }}
-              className="mt-4 h-10 rounded-full bg-white hover:bg-zinc-200 text-black px-5 text-sm font-semibold"
-            >
-              View plans
-            </Button>
+            <Link to="/pricing">
+              <Button className="mt-4 h-10 rounded-full bg-white hover:bg-zinc-200 text-black px-5 text-sm font-semibold">
+                View plans
+              </Button>
+            </Link>
           </section>
         )}
 

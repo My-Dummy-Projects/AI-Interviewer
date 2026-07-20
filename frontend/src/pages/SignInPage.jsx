@@ -50,7 +50,7 @@ export default function SignInPage() {
         left={
           <>
             <Link to={user ? "/dashboard" : "/"} data-testid="signin-nav-logo"><VoxaLogo size={28} /></Link>
-            <div className="hidden md:block h-5 w-px bg-white/10" />
+            <div className="hidden md:block h-5 w-px bg-white" />
             <div className="hidden md:block label-overline">Sign In</div>
           </>
         }
