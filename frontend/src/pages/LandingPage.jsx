@@ -478,7 +478,6 @@ const PricingCard = React.memo(function PricingCard({ tier, currentPlan }) {
     } catch (err) {
       const detail = err?.response?.data?.detail || err?.message || "Failed to initiate payment";
       toast.error(detail);
-      console.error("Create order error:", err?.response?.status, err?.response?.data);
     } finally {
       setLoading(false);
     }
@@ -1172,8 +1171,8 @@ export default function LandingPage() {
               <div className="label-overline">Company</div>
               <ul className="mt-4 space-y-2 text-sm">
                 <li><a href="#faq" className="text-zinc-400 hover:text-white transition-colors">FAQ</a></li>
-                <li><a href="#" className="text-zinc-400 hover:text-white transition-colors">Privacy</a></li>
-                <li><a href="#" className="text-zinc-400 hover:text-white transition-colors">Terms</a></li>
+                <li><Link to="/privacy-policy" className="text-zinc-400 hover:text-white transition-colors">Privacy</Link></li>
+                <li><Link to="/terms" className="text-zinc-400 hover:text-white transition-colors">Terms</Link></li>
               </ul>
             </div>
           </div>

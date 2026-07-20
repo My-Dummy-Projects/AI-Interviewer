@@ -118,6 +118,7 @@ class UserProfileUpdate(BaseModel):
     display_name: Optional[str] = None
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
+    terms_accepted: Optional[bool] = None
 
 
 class UserProfileResponse(BaseModel):
@@ -127,6 +128,7 @@ class UserProfileResponse(BaseModel):
     display_name: str
     avatar_url: str
     bio: str
+    terms_accepted: bool = False
     created_at: str
     updated_at: str
 

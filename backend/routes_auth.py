@@ -27,6 +27,7 @@ async def signup(req: SignUpRequest):
                 "display_name": email.split("@")[0],
                 "avatar_url": "",
                 "bio": "",
+                "terms_accepted": False,
             }).execute()
 
         return AuthResponse(

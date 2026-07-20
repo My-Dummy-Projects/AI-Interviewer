@@ -56,6 +56,9 @@ export function AuthProvider({ children }) {
       email: clerkUser.primaryEmailAddress?.emailAddress || profile.email,
       ...profile,
     });
+    if (profile.terms_accepted === false) {
+      api.updateProfile({ terms_accepted: true }).catch(() => {});
+    }
   }, [isSignedIn, profile, clerkUser]);
 
   useEffect(() => {

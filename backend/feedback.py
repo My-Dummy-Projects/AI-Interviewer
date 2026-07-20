@@ -49,6 +49,7 @@ def ensure_user_profile(current_user) -> None:
             "display_name": display_name,
             "avatar_url": "",
             "bio": "",
+            "terms_accepted": False,
         }).execute()
         logger.info(f"Created user profile for {user_id} with display_name={display_name}")
     except Exception as e:

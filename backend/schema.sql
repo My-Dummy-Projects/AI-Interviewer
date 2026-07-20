@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     display_name    TEXT        NOT NULL DEFAULT '',
     avatar_url      TEXT        NOT NULL DEFAULT '',
     bio             TEXT        NOT NULL DEFAULT '',
+    terms_accepted  BOOLEAN     NOT NULL DEFAULT false,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

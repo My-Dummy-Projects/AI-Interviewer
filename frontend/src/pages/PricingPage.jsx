@@ -255,7 +255,6 @@ export default function PricingPage() {
     } catch (err) {
       const detail = err?.response?.data?.detail || err?.message || "Failed to initiate payment";
       toast.error(detail);
-      console.error("Create order error:", err?.response?.status, err?.response?.data);
     } finally {
       setLoadingId(null);
     }

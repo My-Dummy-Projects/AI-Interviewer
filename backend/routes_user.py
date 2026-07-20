@@ -163,6 +163,7 @@ async def get_profile(current_user=Depends(get_current_user)):
             "display_name": display_name,
             "avatar_url": "",
             "bio": "",
+            "terms_accepted": False,
         }).execute()
         result = supabase.table("user_profiles").select("*").eq("user_id", normalized).execute()
         profile = (result.data or [{}])[0]
@@ -182,6 +183,7 @@ async def get_profile(current_user=Depends(get_current_user)):
         display_name=profile.get("display_name", email_name),
         avatar_url=profile.get("avatar_url", ""),
         bio=profile.get("bio", ""),
+        terms_accepted=profile.get("terms_accepted", False),
         created_at=str(profile.get("created_at", "")),
         updated_at=str(profile.get("updated_at", "")),
     )
@@ -214,6 +216,7 @@ async def update_profile(req: UserProfileUpdate, current_user=Depends(get_curren
         display_name=profile.get("display_name", ""),
         avatar_url=profile.get("avatar_url", ""),
         bio=profile.get("bio", ""),
+        terms_accepted=profile.get("terms_accepted", False),
         created_at=str(profile.get("created_at", "")),
         updated_at=str(profile.get("updated_at", "")),
     )

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, ArrowLeft, Mail, Lock, Eye, EyeOff, AlertTriangle, ShieldCheck } from "lucide-react";
+import { ArrowRight, ArrowLeft, Mail, Lock, Eye, EyeOff, AlertTriangle, ShieldCheck, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,10 +9,11 @@ import { VoxaLogo } from "@/components/VoxaLogo";
 import { useAuth } from "@/context/AuthContext";
 import { LoadingOverlay } from "@/components/LoadingScreen";
 import { toast } from "sonner";
+import api from "@/lib/api";
 
 export default function SignUpPage() {
   const navigate = useNavigate();
-  const { signup, verifySignupOtp, user } = useAuth();
+  const { signup, verifySignupOtp, user, getFreshToken } = useAuth();
   const [step, setStep] = useState("form");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,6 +22,7 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const otpRefs = useRef([]);
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export default function SignUpPage() {
   }, [user, navigate]);
 
   const passwordMinLen = 6;
-  const isValid = email.trim().length > 0 && password.length >= passwordMinLen && password === confirmPassword;
+  const isValid = email.trim().length > 0 && password.length >= passwordMinLen && password === confirmPassword && termsAccepted;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,6 +41,12 @@ export default function SignUpPage() {
     try {
       const result = await signup(email.trim(), password);
       if (result.status === "complete") {
+        try {
+          await getFreshToken();
+          await api.updateProfile({ terms_accepted: true });
+        } catch {
+          // terms acceptance recorded on next profile fetch
+        }
         toast.success("Account created");
         navigate("/dashboard");
       } else if (result.status === "missing_requirements") {
@@ -107,6 +115,12 @@ export default function SignUpPage() {
     try {
       const result = await verifySignupOtp(otpCode);
       if (result.status === "complete") {
+        try {
+          await getFreshToken();
+          await api.updateProfile({ terms_accepted: true });
+        } catch {
+          // terms acceptance recorded on next profile fetch
+        }
         toast.success("Account verified!");
         navigate("/dashboard", { replace: true });
         return;
@@ -331,6 +345,30 @@ export default function SignUpPage() {
                     />
                   </div>
                 </div>
+
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className="relative flex items-center justify-center shrink-0 mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={(e) => setTermsAccepted(e.target.checked)}
+                      className="peer sr-only"
+                    />
+                    <div className="h-5 w-5 rounded-md border border-white/20 bg-white/[0.03] peer-checked:bg-cyan-400 peer-checked:border-cyan-400 transition-colors flex items-center justify-center group-hover:border-white/40">
+                      {termsAccepted && <Check className="h-3.5 w-3.5 text-black" />}
+                    </div>
+                  </div>
+                  <span className="text-sm text-zinc-400 leading-relaxed">
+                    I accept the{" "}
+                    <Link to="/terms" className="text-cyan-300 hover:text-cyan-200 underline underline-offset-2 transition-colors">
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link to="/privacy-policy" className="text-cyan-300 hover:text-cyan-200 underline underline-offset-2 transition-colors">
+                      Privacy Policy
+                    </Link>
+                  </span>
+                </label>
 
                 <Button
                   type="submit"
