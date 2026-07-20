@@ -252,8 +252,10 @@ export default function PricingPage() {
           if (msg !== "Payment cancelled") toast.error(msg);
         },
       });
-    } catch {
-      toast.error("Failed to initiate payment. Please try again.");
+    } catch (err) {
+      const detail = err?.response?.data?.detail || err?.message || "Failed to initiate payment";
+      toast.error(detail);
+      console.error("Create order error:", err?.response?.status, err?.response?.data);
     } finally {
       setLoadingId(null);
     }
