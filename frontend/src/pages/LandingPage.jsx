@@ -503,11 +503,7 @@ const PricingCard = React.memo(function PricingCard({ tier, currentPlan }) {
           data-testid={tier.cta?.testid}
           onClick={handleSubscribe}
           disabled={loading}
-          className={`w-full rounded-full h-11 font-semibold ${
-            isHighlight
-              ? "bg-white hover:bg-zinc-200 text-black"
-              : "bg-white/10 hover:bg-white/15 text-white border border-white/10"
-          }`}
+          className="w-full rounded-full h-11 font-semibold bg-white hover:bg-zinc-200 text-black"
         >
           {loading ? (
             <>
@@ -516,7 +512,7 @@ const PricingCard = React.memo(function PricingCard({ tier, currentPlan }) {
             </>
           ) : (
             <>
-              Subscribe Now
+              {tier.cta.label}
               <ArrowRight className="ml-1.5 h-4 w-4" />
             </>
           )}
@@ -549,11 +545,7 @@ const PricingCard = React.memo(function PricingCard({ tier, currentPlan }) {
         data-testid={tier.cta?.testid}
         onClick={handleSubscribe}
         disabled={loading}
-        className={`w-full rounded-full h-11 font-semibold ${
-          isHighlight
-            ? "bg-white hover:bg-zinc-200 text-black"
-            : "bg-white/10 hover:bg-white/15 text-white border border-white/10"
-        }`}
+        className="w-full rounded-full h-11 font-semibold bg-white hover:bg-zinc-200 text-black"
       >
         {loading ? (
           <>

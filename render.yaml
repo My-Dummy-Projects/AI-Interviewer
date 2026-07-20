@@ -21,7 +21,7 @@ services:
         destination: /index.html
     envVars:
       - key: REACT_APP_BACKEND_URL
-        value: https://ai-interviewer-b1ww.onrender.com/
+        value: https://ai-interviewer-b1ww.onrender.com
 
   - type: web
     name: voxa-backend
@@ -31,19 +31,31 @@ services:
     startCommand: cd backend && uvicorn server:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/
     envVars:
-      - key: MONGO_URL
-        sync: false
-      - key: DB_NAME
-        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_JWT_ISSUER
+        sync: false
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: OPENROUTER_MODEL
+        value: openai/gpt-oss-20b:free
       - key: VAPI_PUBLIC_KEY
         sync: false
       - key: VAPI_ASSISTANT_ID
         sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://ai-interviewer-b1ww.onrender.com
       - key: CORS_ORIGINS
-        value: https://ai-interviewer-b1ww.onrender.com/
+        value: https://ai-interviewer-b1ww.onrender.com

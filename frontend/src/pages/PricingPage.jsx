@@ -127,11 +127,7 @@ function PricingCard({ tier, user, currentPlan, loadingId, onSubscribe }) {
       <Button
         onClick={() => onSubscribe(tier)}
         disabled={isLoading}
-        className={`w-full rounded-full h-11 font-semibold ${
-          isHighlight
-            ? "bg-white hover:bg-zinc-200 text-black"
-            : "bg-white/10 hover:bg-white/15 text-white border border-white/10"
-        }`}
+        className="w-full rounded-full h-11 font-semibold bg-white hover:bg-zinc-200 text-black"
       >
         {isLoading ? (
           <>
