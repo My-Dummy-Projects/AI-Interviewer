@@ -26,7 +26,6 @@ import {
   Users,
   Rocket,
   Loader2,
-  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,11 +36,9 @@ import {
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { VoxaLogo } from "@/components/VoxaLogo";
-import { useSubscriptionQuery } from "@/hooks/useApiQueries";
+
 import { useCreateOrderMutation, useVerifyPaymentMutation } from "@/hooks/useApiMutations";
 import { openRazorpayCheckout } from "@/lib/razorpay";
-
-const PLAN_RANK = { free: 0, starter: 1, pro: 2 };
 
 /* -------- Small subcomponents -------- */
 
@@ -428,19 +425,13 @@ const PRICING = [
   },
 ];
 
-const PricingCard = React.memo(function PricingCard({ tier, currentPlan }) {
+const PricingCard = React.memo(function PricingCard({ tier }) {
   const { user } = useAuth();
   const isHighlight = tier.highlight;
   const isFree = tier.id === "free";
   const [loading, setLoading] = useState(false);
   const createOrder = useCreateOrderMutation();
   const verifyPayment = useVerifyPaymentMutation();
-
-  const isCurrentPlan = currentPlan === tier.id;
-  const userPlanRank = currentPlan ? PLAN_RANK[currentPlan] : -1;
-  const tierRank = PLAN_RANK[tier.id];
-  const isDowngradeOrSame = tierRank <= userPlanRank;
-  const isDisabled = !user || isCurrentPlan || (isDowngradeOrSame && !isCurrentPlan);
 
   const handleSubscribe = async () => {
     if (!user) {
@@ -485,62 +476,19 @@ const PricingCard = React.memo(function PricingCard({ tier, currentPlan }) {
 
   let buttonContent = null;
 
-  if (!user) {
-    if (isFree) {
-      buttonContent = (
-        <Link to="/signin">
-          <Button
-            data-testid={tier.cta?.testid}
-            className="w-full rounded-full h-11 font-semibold bg-white hover:bg-zinc-200 text-black"
-          >
-            Get Started Free
-            <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Button>
-        </Link>
-      );
-    } else {
-      buttonContent = (
+  if (isFree) {
+    buttonContent = (
+      <Link to="/signin">
         <Button
           data-testid={tier.cta?.testid}
-          onClick={handleSubscribe}
-          disabled={loading}
           className="w-full rounded-full h-11 font-semibold bg-white hover:bg-zinc-200 text-black"
         >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Please wait...
-            </>
-          ) : (
-            <>
-              {tier.cta.label}
-              <ArrowRight className="ml-1.5 h-4 w-4" />
-            </>
-          )}
+          Get Started Free
+          <ArrowRight className="ml-1.5 h-4 w-4" />
         </Button>
-      );
-    }
-  } else if (isCurrentPlan) {
-    buttonContent = (
-      <Button disabled className="w-full rounded-full h-11 font-semibold bg-zinc-800 text-zinc-400 cursor-not-allowed border border-white/5">
-        <Shield className="mr-1.5 h-4 w-4" />
-        Current Plan
-      </Button>
-    );
-  } else if (isFree) {
-    buttonContent = (
-      <Button disabled className="w-full rounded-full h-11 font-semibold bg-zinc-800 text-zinc-500 cursor-not-allowed border border-white/5">
-        Free Plan
-      </Button>
-    );
-  } else if (isDowngradeOrSame) {
-    buttonContent = (
-      <Button disabled className="w-full rounded-full h-11 font-semibold bg-zinc-800 text-zinc-500 cursor-not-allowed border border-white/5">
-        {tier.name} Plan
-      </Button>
+      </Link>
     );
   } else {
-    const isUpgrade = tierRank > userPlanRank;
     buttonContent = (
       <Button
         data-testid={tier.cta?.testid}
@@ -555,7 +503,7 @@ const PricingCard = React.memo(function PricingCard({ tier, currentPlan }) {
           </>
         ) : (
           <>
-            {isUpgrade ? `Upgrade to ${tier.name}` : `Subscribe to ${tier.name}`}
+            {tier.cta.label}
             <ArrowRight className="ml-1.5 h-4 w-4" />
           </>
         )}
@@ -566,19 +514,12 @@ const PricingCard = React.memo(function PricingCard({ tier, currentPlan }) {
   return (
     <div
       className={`relative rounded-2xl border p-6 h-full flex flex-col transition-all duration-300 ${
-        isCurrentPlan
-          ? "border-cyan-400/60 bg-gradient-to-b from-cyan-400/[0.08] to-transparent shadow-[0_0_30px_-5px_rgba(0,255,234,0.15)]"
-          : isHighlight && !isCurrentPlan
+        isHighlight
           ? "border-cyan-400/40 bg-gradient-to-b from-cyan-400/[0.06] to-transparent"
           : "border-white/10 bg-[#0a0a0a]"
-      } ${isDisabled && !isCurrentPlan ? "opacity-60" : ""}`}
+      }`}
     >
-      {isCurrentPlan && (
-        <div className="absolute -top-3 left-6 font-mono text-[10px] tracking-widest uppercase bg-cyan-400 text-black px-2 py-1 rounded">
-          Current Plan
-        </div>
-      )}
-      {isHighlight && !isCurrentPlan && (
+      {isHighlight && (
         <div className="absolute -top-3 left-6 font-mono text-[10px] tracking-widest uppercase bg-cyan-300 text-black px-2 py-1 rounded">
           Recommended
         </div>
@@ -603,19 +544,19 @@ const PricingCard = React.memo(function PricingCard({ tier, currentPlan }) {
         >
           {tier.price}
         </span>
-        <span className="text-sm text-zinc-500">{tier.period}</span>
+        <span className="text-sm text-white">{tier.period}</span>
       </div>
-      <p className="mt-2 text-sm text-zinc-400">{tier.desc}</p>
+      <p className="mt-2 text-sm text-white">{tier.desc}</p>
       <ul className="mt-5 space-y-2.5 flex-1">
         {tier.features.map((f, i) => (
-          <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
+          <li key={i} className="flex items-start gap-2 text-sm text-white">
             <Check className="h-4 w-4 text-cyan-300 mt-0.5 shrink-0" strokeWidth={2} />
             <span>{f}</span>
           </li>
         ))}
       </ul>
       {tier.note && (
-        <p className="mt-4 text-xs text-zinc-500 leading-relaxed">{tier.note}</p>
+        <p className="mt-4 text-xs text-white leading-relaxed">{tier.note}</p>
       )}
       <div className="mt-6">{buttonContent}</div>
     </div>
@@ -682,8 +623,6 @@ const FAQ = React.memo(function FAQ() {
 /* -------- Main Page -------- */
 export default function LandingPage() {
   const { user } = useAuth();
-  const { data: subscription } = useSubscriptionQuery(!!user);
-  const currentPlan = subscription?.plan || null;
 
   return (
     <div className="relative min-h-screen bg-[#050505] text-white overflow-x-hidden">
@@ -1077,7 +1016,7 @@ export default function LandingPage() {
           </div>
           <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
             {PRICING.map((tier) => (
-              <PricingCard key={tier.name} tier={tier} currentPlan={currentPlan} />
+              <PricingCard key={tier.name} tier={tier} />
             ))}
           </div>
         </div>
