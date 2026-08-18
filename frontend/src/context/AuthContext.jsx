@@ -87,11 +87,21 @@ export function AuthProvider({ children }) {
 
       if (result.status === "complete") {
         await setActiveSignUp({ session: result.createdSessionId, redirectUrl: "/dashboard" });
+        // Sync profile to Supabase after Clerk signup
+        try {
+          const token = await getToken();
+          if (token) {
+            setBearerToken(token);
+            await api.syncProfile();
+          }
+        } catch (e) {
+          console.warn("Profile sync failed (will retry on profile fetch):", e);
+        }
       }
 
       return result;
     },
-    [clerkSignUp, setActiveSignUp],
+    [clerkSignUp, setActiveSignUp, getToken],
   );
 
   const signin = useCallback(
@@ -106,11 +116,21 @@ export function AuthProvider({ children }) {
 
       if (result.status === "complete") {
         await setActiveSignIn({ session: result.createdSessionId, redirectUrl: "/dashboard" });
+        // Ensure profile exists in Supabase (handles users who signed up before sync-profile was added)
+        try {
+          const token = await getToken();
+          if (token) {
+            setBearerToken(token);
+            await api.syncProfile();
+          }
+        } catch (e) {
+          console.warn("Profile sync failed (will retry on profile fetch):", e);
+        }
       }
 
       return result;
     },
-    [clerkSignIn, setActiveSignIn],
+    [clerkSignIn, setActiveSignIn, getToken],
   );
 
   const signout = useCallback(async () => {
@@ -131,11 +151,21 @@ export function AuthProvider({ children }) {
 
       if (result.status === "complete") {
         await setActiveSignUp({ session: result.createdSessionId, redirectUrl: "/dashboard" });
+        // Sync profile to Supabase after email verification
+        try {
+          const token = await getToken();
+          if (token) {
+            setBearerToken(token);
+            await api.syncProfile();
+          }
+        } catch (e) {
+          console.warn("Profile sync failed (will retry on profile fetch):", e);
+        }
       }
 
       return result;
     },
-    [clerkSignUp, setActiveSignUp],
+    [clerkSignUp, setActiveSignUp, getToken],
   );
 
   const refreshProfile = useCallback(async () => {

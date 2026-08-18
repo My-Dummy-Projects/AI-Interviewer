@@ -345,11 +345,11 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
                 logger.error(f"Failed to save interview: no data returned. Response: {result}")
         except Exception as e:
             logger.error(f"Failed to save interview: {e}\n{traceback.format_exc()}")
-        finally:
+            # Refund credit only if the interview save failed after credit was consumed
             if credit_consumed:
                 try:
                     refund_interview_credit(current_user.id)
-                    logger.info(f"Interview credit refunded for user {current_user.id}")
+                    logger.info(f"Interview credit refunded for user {current_user.id} (save failed)")
                 except Exception:
                     pass
     else:

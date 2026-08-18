@@ -164,6 +164,16 @@ const api = {
     );
     return data;
   },
+
+  // Auth sync
+  async syncProfile() {
+    const { data } = await axios.post(
+      `${API}/auth/sync-profile`,
+      {},
+      { headers: authHeaders() }
+    );
+    return data;
+  },
 };
 
 export default api;
