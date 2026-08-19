@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, MessageSquare } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -51,7 +51,7 @@ export default function FeedbackPage() {
       });
       toast.success("Thanks for your feedback!");
       navigate("/dashboard");
-    } catch (e) {
+    } catch {
       toast.error("Unable to submit feedback. Please try again.");
     } finally {
       setSubmitting(false);

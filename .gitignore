@@ -41,6 +41,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 dump.rdb
+serve.log
+*.log
 
 # System files
 .DS_Store
@@ -75,6 +77,9 @@ agenthub/agents/youtube/db
 
 # Build caches
 .cache/
+
+# Git worktrees
+.worktrees/
 
 memory/test_credentials.md
 
