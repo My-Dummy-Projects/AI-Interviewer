@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import { InterviewProvider } from "@/context/InterviewContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import LandingPage from "@/pages/LandingPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,7 +20,6 @@ const queryClient = new QueryClient({
   },
 });
 
-const LandingPage = lazy(() => import("@/pages/LandingPage"));
 const SetupPage = lazy(() => import("@/pages/SetupPage"));
 const InterviewPage = lazy(() => import("@/pages/InterviewPage"));
 const ReportPage = lazy(() => import("@/pages/ReportPage"));

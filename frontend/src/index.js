@@ -22,13 +22,9 @@ function loadAnalyticsOnce() {
 }
 
 window.addEventListener("load", () => {
-  if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(loadAnalyticsOnce, { timeout: 8000 });
-  } else {
-    setTimeout(loadAnalyticsOnce, 8000);
-  }
+  setTimeout(loadAnalyticsOnce, 30000);
 });
 
-["pointerdown", "keydown", "scroll"].forEach((event) => {
+["pointerdown", "keydown", "scroll", "wheel", "touchstart"].forEach((event) => {
   window.addEventListener(event, loadAnalyticsOnce, { once: true, passive: true });
 });

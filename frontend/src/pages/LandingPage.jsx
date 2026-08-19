@@ -635,23 +635,15 @@ export default function LandingPage() {
         <div className="relative max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
             <div className="lg:col-span-7">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-300 font-mono tracking-wider uppercase"
-                data-testid="hero-badge"
-              >
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-300 font-mono tracking-wider uppercase" data-testid="hero-badge">
                 <Sparkles className="h-3 w-3 text-cyan-300" />
                 <span>AI voice mock interviews · Free during beta</span>
-              </motion.div>
+              </div>
 
-              <motion.h1
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.05 }}
+              <h1
                 className="mt-6 text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.95] text-white"
                 style={{ fontFamily: "var(--font-heading)" }}
+                data-testid="hero-title"
               >
                 Speak to your{" "}
                 <span className="relative inline-block">
@@ -659,25 +651,18 @@ export default function LandingPage() {
                     future.
                   </span>
                 </span>
-              </motion.h1>
+              </h1>
 
-              <motion.p
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
+              <p
                 className="mt-6 max-w-xl text-lg text-zinc-400 leading-relaxed"
+                data-testid="hero-subtitle"
               >
                 Voxa is your always-available AI interview coach. Realistic voice
                 interviews, contextual follow-ups, and a hiring-manager-grade
                 scorecard — in under ten minutes.
-              </motion.p>
+              </p>
 
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.15 }}
-                className="mt-8 flex flex-wrap items-center gap-3"
-              >
+              <div className="mt-8 flex flex-wrap items-center gap-3" data-testid="hero-ctas">
                 <Link to={user ? "/setup" : "/signin"}>
                   <Button
                     data-testid="hero-cta-primary"
@@ -696,14 +681,9 @@ export default function LandingPage() {
                     See a sample report
                   </Button>
                 </a>
-              </motion.div>
+              </div>
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.25 }}
-                className="mt-10 flex items-center gap-6 text-xs text-zinc-500 font-mono tracking-wider uppercase"
-              >
+              <div className="mt-10 flex items-center gap-6 text-xs text-zinc-500 font-mono tracking-wider uppercase" data-testid="hero-trust">
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck className="h-3.5 w-3.5" /> Secure & private
                 </div>
@@ -713,7 +693,7 @@ export default function LandingPage() {
                 <div className="flex items-center gap-1.5">
                   <Mic className="h-3.5 w-3.5" /> Browser only
                 </div>
-              </motion.div>
+              </div>
             </div>
 
             <motion.div
