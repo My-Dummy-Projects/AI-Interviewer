@@ -34,7 +34,7 @@ const PricingPage = lazy(() => import("@/pages/PricingPage"));
 const PrivacyPolicyPage = lazy(() => import("@/pages/PrivacyPolicyPage"));
 const TermsOfServicePage = lazy(() => import("@/pages/TermsOfServicePage"));
 
-const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || "";
+const clerkPubKey = import.meta.env.REACT_APP_CLERK_PUBLISHABLE_KEY || "";
 if (!clerkPubKey) {
   console.error("REACT_APP_CLERK_PUBLISHABLE_KEY is not set. Authentication will not work.");
 }
