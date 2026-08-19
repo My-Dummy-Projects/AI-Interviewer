@@ -29,6 +29,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "lint": "eslint src --format json --output-file ../test_reports/eslint-report.json",
     "test": "vitest run"
   },
   "browserslist": {

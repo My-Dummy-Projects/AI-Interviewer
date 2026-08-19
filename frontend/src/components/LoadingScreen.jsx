@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Loader2, AudioLines, MessageSquare } from "lucide-react";
+import { Loader2, AudioLines } from "lucide-react";
 
 export function LoadingScreen({ message = "Loading...", submessage, fullScreen = true }) {
   useEffect(() => {

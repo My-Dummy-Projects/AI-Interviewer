@@ -20,7 +20,6 @@ import {
   Settings,
   FileText,
   Check,
-  X,
   Star,
   Zap,
   Users,
@@ -201,11 +200,8 @@ const VoicePreview = React.memo(function VoicePreview() {
         {/* Transcript */}
         <div className="px-5 py-4 space-y-2 h-40 overflow-hidden border-t border-white/5">
           {lines.slice(0, visible).map((l, i) => (
-            <motion.div
+            <div
               key={i}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
               className="text-sm"
             >
               <span
@@ -216,7 +212,7 @@ const VoicePreview = React.memo(function VoicePreview() {
                 {l.role === "assistant" ? "ARIA" : "YOU"}
               </span>
               <span className="text-zinc-200">{l.text}</span>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
@@ -625,7 +621,7 @@ export default function LandingPage() {
   const { user } = useAuth();
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-white overflow-x-hidden">
+    <main className="relative min-h-screen bg-[#050505] text-white overflow-x-hidden">
       <Nav />
 
       {/* HERO */}
@@ -1105,6 +1101,6 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-    </div>
+    </main>
   );
 }

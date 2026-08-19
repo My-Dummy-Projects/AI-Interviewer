@@ -168,12 +168,12 @@ function PricingCard({ tier, user, currentPlan, loadingId, onSubscribe }) {
         </div>
       )}
       <div className="flex items-center justify-between">
-        <h3
+        <h2
           className="text-2xl font-bold text-white"
           style={{ fontFamily: "var(--font-heading)" }}
         >
           {tier.name}
-        </h3>
+        </h2>
       </div>
       <div className="mt-4 flex items-baseline gap-1">
         <span
@@ -409,7 +409,7 @@ export default function PricingPage() {
         <section className="text-center">
           <p className="text-zinc-500 text-sm">
             All paid plans are billed monthly. Cancel anytime. Questions?{" "}
-            <Link to="/feedback" className="text-cyan-300 hover:underline">
+            <Link to="/feedback" className="text-cyan-300 underline underline-offset-2 hover:brightness-110">
               Contact us
             </Link>
             .

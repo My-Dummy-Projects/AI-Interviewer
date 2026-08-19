@@ -73,7 +73,7 @@ export default function InterviewPage() {
     try {
       try {
         vapiRef.current?.stop();
-      } catch (_) {
+      } catch {
         /* ignore */
       }
       setEnded(true);
@@ -104,7 +104,7 @@ export default function InterviewPage() {
       const data = await api.submitFeedback(payload);
       setReport(data);
       navigate("/report");
-    } catch (e) {
+    } catch {
       toast.error("Could not generate feedback. Please try again.");
       setSubmitting(false);
     }
@@ -374,12 +374,12 @@ export default function InterviewPage() {
                 <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-zinc-400">
                   {status === "speaking" ? "AI" : status === "listening" ? "YOU" : "···"}
                 </div>
-                <div
+                <h1
                   className="text-3xl font-black tracking-tighter mt-1 text-white"
                   style={{ fontFamily: "var(--font-heading)" }}
                 >
                   Aria
-                </div>
+                </h1>
               </div>
             </div>
           </div>

@@ -3,6 +3,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MotionConfig } from "framer-motion";
 import { ErrorBoundary, GlobalErrorHandler } from "@/components/ErrorBoundary";
 import { Toaster } from "sonner";
 import { InterviewProvider } from "@/context/InterviewContext";
@@ -82,7 +83,15 @@ function AppContent() {
       <BrowserRouter>
         <ErrorBoundary>
           <Suspense fallback={<LoadingScreen message="Loading..." />}>
-            <AppRoutes />
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-black"
+            >
+              Skip to main content
+            </a>
+            <div id="main-content">
+              <AppRoutes />
+            </div>
           </Suspense>
         </ErrorBoundary>
       </BrowserRouter>
@@ -116,7 +125,9 @@ function App() {
         signUpUrl="/signup"
       >
         <AuthProvider>
-          <AppContent />
+          <MotionConfig reducedMotion="user">
+            <AppContent />
+          </MotionConfig>
         </AuthProvider>
       </ClerkProvider>
       </QueryClientProvider>

@@ -41,6 +41,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 dump.rdb
+serve.log
+*.log
 
 # System files
 .DS_Store

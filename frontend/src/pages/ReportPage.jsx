@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, Navigate } from "react-router-dom";
-import { RotateCcw, ArrowLeft, CheckCircle2, TrendingUp, TrendingDown, GraduationCap, Loader2, MessageSquare } from "lucide-react";
+import { RotateCcw, ArrowLeft, CheckCircle2, TrendingUp, TrendingDown, GraduationCap, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
