@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from datetime import datetime, timezone, timedelta
 
 from config import supabase, logger
@@ -10,8 +10,63 @@ from models import (
 )
 from deps import get_current_user, try_get_user, normalize_user_id
 from feedback import ensure_user_profile
+from rate_limit import limiter
+
 
 api_router_user = APIRouter(prefix="/api/user")
+
+
+# ── Auth sync (moved from routes_auth.py — only live endpoint from that file) ──
+
+@api_router_user.post("/sync-profile")
+@limiter.limit("10/minute")
+async def sync_profile(request: Request, current_user=Depends(get_current_user)):
+    """Ensure a user_profiles record exists for the current Clerk user.
+
+    Called after Clerk signup to guarantee the Supabase profile exists,
+    even if the lazy creation in get_profile hasn't run yet.
+    """
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    try:
+        user_id = normalize_user_id(current_user.id)
+        email = current_user.email or ""
+
+        existing = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+        if existing.data:
+            logger.info(f"sync-profile: Profile already exists for {user_id}")
+            return {"created": False, "user_id": user_id}
+
+        display_name = (
+            getattr(current_user, "name", "")
+            or (email.split("@")[0] if email else f"User_{user_id[:8]}")
+        )
+
+        supabase.table("user_profiles").insert({
+            "user_id": user_id,
+            "email": email,
+            "display_name": display_name,
+            "avatar_url": "",
+            "bio": "",
+            "terms_accepted": False,
+        }).execute()
+
+        # Also ensure a free subscription exists
+        sub = supabase.table("user_subscriptions").select("*").eq("user_id", user_id).execute()
+        if not sub.data:
+            supabase.table("user_subscriptions").insert({
+                "user_id": user_id,
+                "plan": "free",
+                "interviews_allowed": 2,
+                "interviews_used": 0,
+                "status": "active",
+            }).execute()
+
+        logger.info(f"sync-profile: Created profile and subscription for {user_id}")
+        return {"created": True, "user_id": user_id}
+    except Exception as e:
+        logger.error(f"sync-profile failed for user {current_user.id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to sync profile: {str(e)}")
 
 
 def fetch_transcript(interview_id: str) -> list:

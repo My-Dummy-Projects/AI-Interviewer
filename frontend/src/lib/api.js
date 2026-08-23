@@ -168,7 +168,7 @@ const api = {
   // Auth sync
   async syncProfile() {
     const { data } = await axios.post(
-      `${API}/auth/sync-profile`,
+      `${API}/user/sync-profile`,
       {},
       { headers: authHeaders() }
     );

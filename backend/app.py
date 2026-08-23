@@ -1,12 +1,14 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Request
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from config import VAPI_PUBLIC_KEY, VAPI_ASSISTANT_ID, CORS_ORIGINS
 from models import ConfigResponse
+from rate_limit import limiter
 from routes_user import api_router_user
 from routes_interview import api_router_interview
-from routes_auth import api_router_auth
 from routes_payments import api_router_payments
 
 MAX_BODY_SIZE = 5 * 1024 * 1024  # 5 MB
@@ -21,6 +23,8 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
 
 
 app = FastAPI(title="AI Voice Mock Interview MVP")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 api_base = APIRouter(prefix="/api")
 
@@ -42,7 +46,6 @@ async def get_config():
 app.include_router(api_base)
 app.include_router(api_router_user)
 app.include_router(api_router_interview)
-app.include_router(api_router_auth)
 app.include_router(api_router_payments)
 app.add_middleware(BodySizeLimitMiddleware)
 if CORS_ORIGINS == '*':

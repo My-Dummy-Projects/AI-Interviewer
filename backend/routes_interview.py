@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 
 from config import logger
 from models import FeedbackRequest, FeedbackReport, PLAN_LIMITS
 from deps import try_get_user, get_current_user
 from feedback import generate_and_save_feedback
+from rate_limit import limiter
 from routes_user import get_or_create_subscription
 
 api_router_interview = APIRouter(prefix="/api/interview")
@@ -46,7 +47,8 @@ async def validate_interview_setup(req: FeedbackRequest, current_user=Depends(ge
 
 
 @api_router_interview.post("/feedback", response_model=FeedbackReport)
-async def generate_feedback(req: FeedbackRequest, current_user=Depends(try_get_user)):
+@limiter.limit("5/minute")
+async def generate_feedback(request: Request, req: FeedbackRequest, current_user=Depends(try_get_user)):
     if not req.transcript:
         raise HTTPException(status_code=400, detail="Transcript is empty.")
     authenticated = current_user is not None

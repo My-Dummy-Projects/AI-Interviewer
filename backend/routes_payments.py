@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from config import supabase, logger, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET
 from deps import get_current_user, normalize_user_id
 from models import CreateOrderRequest, CreateOrderResponse, VerifyPaymentRequest, PLAN_LIMITS, PLAN_RANK
+from rate_limit import limiter
 
 api_router_payments = APIRouter(prefix="/api/payments")
 
@@ -28,7 +29,8 @@ async def get_payment_config():
 
 
 @api_router_payments.post("/create-order", response_model=CreateOrderResponse)
-async def create_order(req: CreateOrderRequest, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def create_order(request: Request, req: CreateOrderRequest, current_user=Depends(get_current_user)):
     try:
         if req.planId not in PLAN_LIMITS:
             raise HTTPException(status_code=400, detail=f"Invalid plan: {req.planId}")
@@ -91,7 +93,8 @@ async def create_order(req: CreateOrderRequest, current_user=Depends(get_current
 
 
 @api_router_payments.post("/verify-payment")
-async def verify_payment(req: VerifyPaymentRequest, current_user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def verify_payment(request: Request, req: VerifyPaymentRequest, current_user=Depends(get_current_user)):
     if not RAZORPAY_KEY_SECRET:
         raise HTTPException(status_code=500, detail="Payment verification not configured")
     expected_signature = hmac.new(
