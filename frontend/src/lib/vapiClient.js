@@ -13,7 +13,7 @@ export function getVapi(publicKey) {
 export function resetVapi() {
   try {
     if (vapiInstance) vapiInstance.stop();
-  } catch (e) {
+  } catch {
     // ignore
   }
   vapiInstance = null;

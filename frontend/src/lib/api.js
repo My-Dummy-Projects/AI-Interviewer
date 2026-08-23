@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "").replace(/\/+$/, "");
+const BACKEND_URL = (import.meta.env.REACT_APP_BACKEND_URL || "").replace(/\/+$/, "");
 const API = `${BACKEND_URL}/api`;
 
 let _bearerToken = null;

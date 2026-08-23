@@ -11,7 +11,7 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.DEV) {
       console.error("ErrorBoundary caught:", error, errorInfo);
     }
   }
@@ -41,13 +41,13 @@ export class ErrorBoundary extends React.Component {
 export function GlobalErrorHandler() {
   React.useEffect(() => {
     const handler = (event) => {
-      if (process.env.NODE_ENV === "development") {
+      if (import.meta.env.DEV) {
         event.preventDefault();
         console.error("Unhandled error:", event.error || event.message);
       }
     };
     const rejectionHandler = (event) => {
-      if (process.env.NODE_ENV === "development") {
+      if (import.meta.env.DEV) {
         event.preventDefault();
         console.error("Unhandled promise rejection:", event.reason);
       }

@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
-import { ArrowRight, ArrowLeft, Mic, ShieldCheck, Sparkles, AlertTriangle, Loader2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, Mic, ShieldCheck, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import {
   Select,
   SelectContent,

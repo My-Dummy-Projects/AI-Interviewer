@@ -3,35 +3,25 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LogOut,
-  ArrowRight,
-  Calendar,
   Briefcase,
-  Clock,
   Loader2,
   FileText,
   Settings,
   TrendingUp,
   TrendingDown,
-  Target,
-  Timer,
-  Award,
   BrainCircuit,
   Search,
   SlidersHorizontal,
-  Sparkles,
   ChevronRight,
   Flame,
   Star,
-  X,
   Check,
   Minus,
   Plus,
   Pencil,
   Play,
   Zap,
-  Trophy,
   CreditCard,
-  ShieldCheck,
   AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -532,13 +522,6 @@ export default function DashboardPage() {
 
   const visibleInterviews = filteredInterviews.slice(0, visibleCount);
   const hasMore = visibleCount < filteredInterviews.length;
-
-  const bestInterview = useMemo(() => {
-    if (!interviews.length) return null;
-    return interviews.reduce((best, curr) =>
-      curr.overallScore > best.overallScore ? curr : best
-    );
-  }, [interviews]);
 
   // week-based aggregations
   const weekAggregates = useMemo(() => {

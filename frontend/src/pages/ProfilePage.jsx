@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
-  User,
   LogOut,
   Save,
   ArrowLeft,
@@ -344,13 +343,12 @@ export default function ProfilePage() {
                           placeholder="Enter current password"
                           className="h-11 rounded-lg bg-white/[0.03] border-white/10 focus-visible:border-cyan-400/50 focus-visible:ring-1 focus-visible:ring-cyan-400/40 text-sm text-white placeholder:text-zinc-600 pr-10"
                           required
-                          autoFocus
                         />
                         <button
                           type="button"
                           aria-label={showPasswords ? "Hide passwords" : "Show passwords"}
                           onClick={() => setShowPasswords(!showPasswords)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-zinc-500 hover:text-zinc-300"
                         >
                           {showPasswords ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
