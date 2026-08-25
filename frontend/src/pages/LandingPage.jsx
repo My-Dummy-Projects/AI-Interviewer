@@ -688,9 +688,9 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="mt-6">
+              {/* <div className="mt-6">
                 <a href="https://maidensail.com/startup/voxa" rel="dofollow"><img src="https://maidensail.com/badge/voxa.svg?theme=dark" alt="Featured on Maidensail" height="44" /></a>
-              </div>
+              </div> */}
             </div>
 
             <motion.div
