@@ -508,8 +508,8 @@ const PricingCard = React.memo(function PricingCard({ tier }) {
   return (
     <div
       className={`relative rounded-2xl border p-6 h-full flex flex-col transition-all duration-300 ${isHighlight
-          ? "border-cyan-400/40 bg-gradient-to-b from-cyan-400/[0.06] to-transparent"
-          : "border-white/10 bg-[#0a0a0a]"
+        ? "border-cyan-400/40 bg-gradient-to-b from-cyan-400/[0.06] to-transparent"
+        : "border-white/10 bg-[#0a0a0a]"
         }`}
     >
       {isHighlight && (
@@ -689,17 +689,7 @@ export default function LandingPage() {
               </div>
 
               <div className="mt-6">
-                <a
-                  href="https://maidensail.com/startup/voxa"
-                  rel="dofollow"
-                  data-testid="hero-maidensail-badge"
-                >
-                  <img
-                    src="https://maidensail.com/badge/voxa.svg"
-                    alt="Featured on Maidensail"
-                    height="44"
-                  />
-                </a>
+                <a href="https://maidensail.com/startup/voxa" rel="dofollow"><img src="https://maidensail.com/badge/voxa.svg?theme=dark" alt="Featured on Maidensail" height="44" /></a>
               </div>
             </div>
 
