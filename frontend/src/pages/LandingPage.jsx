@@ -59,9 +59,8 @@ const Nav = React.memo(function Nav() {
   }, []);
   return (
     <div
-      className={`fixed top-0 left-0 right-0 z-50 transition-[background,border] duration-300 ${
-        scrolled ? "glass" : "bg-transparent border-transparent"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-[background,border] duration-300 ${scrolled ? "glass" : "bg-transparent border-transparent"
+        }`}
       data-testid="landing-nav"
     >
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -205,9 +204,8 @@ const VoicePreview = React.memo(function VoicePreview() {
               className="text-sm"
             >
               <span
-                className={`font-mono text-[9px] tracking-widest uppercase mr-2 ${
-                  l.role === "assistant" ? "text-cyan-300" : "text-zinc-400"
-                }`}
+                className={`font-mono text-[9px] tracking-widest uppercase mr-2 ${l.role === "assistant" ? "text-cyan-300" : "text-zinc-400"
+                  }`}
               >
                 {l.role === "assistant" ? "ARIA" : "YOU"}
               </span>
@@ -509,11 +507,10 @@ const PricingCard = React.memo(function PricingCard({ tier }) {
 
   return (
     <div
-      className={`relative rounded-2xl border p-6 h-full flex flex-col transition-all duration-300 ${
-        isHighlight
+      className={`relative rounded-2xl border p-6 h-full flex flex-col transition-all duration-300 ${isHighlight
           ? "border-cyan-400/40 bg-gradient-to-b from-cyan-400/[0.06] to-transparent"
           : "border-white/10 bg-[#0a0a0a]"
-      }`}
+        }`}
     >
       {isHighlight && (
         <div className="absolute -top-3 left-6 font-mono text-[10px] tracking-widest uppercase bg-cyan-300 text-black px-2 py-1 rounded">
@@ -689,6 +686,20 @@ export default function LandingPage() {
                 <div className="flex items-center gap-1.5">
                   <Mic className="h-3.5 w-3.5" /> Browser only
                 </div>
+              </div>
+
+              <div className="mt-6">
+                <a
+                  href="https://maidensail.com/startup/voxa"
+                  rel="dofollow"
+                  data-testid="hero-maidensail-badge"
+                >
+                  <img
+                    src="https://maidensail.com/badge/voxa.svg"
+                    alt="Featured on Maidensail"
+                    height="44"
+                  />
+                </a>
               </div>
             </div>
 
