@@ -1,3 +1,4 @@
+/** Combine Tailwind class names, later ones winning in conflicts. */
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge"
 

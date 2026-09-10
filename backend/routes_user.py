@@ -1,3 +1,10 @@
+"""User endpoints: profiles, interview history/reports, feedback, subscriptions.
+
+Also hosts the shared subscription/quota helpers (create, reset period,
+quota check, atomic credit consume/refund) used by the interview and
+payments modules, along with normalization helpers for reading interview
+records out of the database.
+"""
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from datetime import datetime, timezone, timedelta
 
@@ -8,7 +15,7 @@ from models import (
     DashboardStats, FeedbackEntryRequest, FeedbackEntryResponse,
     SubscriptionResponse, SubscriptionUsageResponse, PLAN_LIMITS, PLAN_RANK,
 )
-from deps import get_current_user, try_get_user, normalize_user_id
+from deps import get_current_user, normalize_user_id
 from feedback import ensure_user_profile
 from rate_limit import limiter
 
@@ -70,6 +77,12 @@ async def sync_profile(request: Request, current_user=Depends(get_current_user))
 
 
 def fetch_transcript(interview_id: str) -> list:
+    """Read a transcript for an interview.
+
+    Prefers the denormalized JSONB ``transcript`` column, falling back to
+    rows in the normalized ``transcript_turns`` table (for deployments
+    where the JSONB column is absent).
+    """
     result = supabase.table("interviews").select("transcript").eq("id", interview_id).execute()
     if result.data and result.data[0].get("transcript"):
         transcript = result.data[0]["transcript"]
@@ -84,6 +97,11 @@ def fetch_transcript(interview_id: str) -> list:
 
 
 def fetch_report(interview_id: str) -> dict:
+    """Read a feedback report for an interview.
+
+    Like ``fetch_transcript``, prefers the JSONB ``report`` column and
+    falls back to reconstructing the report from the normalized tables.
+    """
     result = supabase.table("interviews").select("report").eq("id", interview_id).execute()
     if result.data and result.data[0].get("report"):
         report = result.data[0]["report"]
@@ -132,6 +150,13 @@ def fetch_report(interview_id: str) -> dict:
 
 
 def get_user_id_candidates(user_id: str, email: str = "", client=None) -> list[str]:
+    """Resolve the set of database user IDs that may belong to this caller.
+
+    The JWT sub can be a Clerk ID or a stored UUID, and profiles may have
+    been created under either. We collect the normalized ID plus any profile
+    rows found by matching the user's email, so lookups tolerate both
+    identity schemes.
+    """
     candidates = []
     normalized = normalize_user_id(user_id or "")
     if normalized:
@@ -157,6 +182,11 @@ def get_user_id_candidates(user_id: str, email: str = "", client=None) -> list[s
 
 
 def normalize_interview_record(record: dict) -> dict:
+    """Map a raw DB row into the frontend's InterviewDetail shape.
+
+    Handles camelCase vs snake_case column drift and resolves the report
+    and transcript (JSONB first, normalized tables as fallback).
+    """
     if not isinstance(record, dict):
         return {}
 
@@ -196,6 +226,8 @@ def normalize_interview_record(record: dict) -> dict:
 
 @api_router_user.get("/profile", response_model=UserProfileResponse)
 async def get_profile(current_user=Depends(get_current_user)):
+    # Resolve candidate IDs so we find the profile regardless of whether the
+    # store used a Clerk-style ID or a normalized UUID for this user.
     user_id = current_user.id
     email = current_user.email or ""
     candidate_ids = get_user_id_candidates(user_id, email)
@@ -291,7 +323,7 @@ async def get_interviews(
         return InterviewHistoryResponse(interviews=[], total=0, page=1, page_size=page_size, total_pages=0)
 
     start = (page - 1) * page_size
-    end = start + page_size - 1
+    end = start + page_size - 1  # Supabase range() is inclusive on both ends
 
     result = supabase.table("interviews").select("*", count="exact").in_("user_id", candidate_ids).order("created_at", desc=True).range(start, end).execute()
     docs = result.data or []
@@ -320,6 +352,7 @@ async def get_interview(interview_id: str, current_user=Depends(get_current_user
 
     result = supabase.table("interviews").select("*").eq("id", interview_id).execute()
     docs = result.data or []
+    # Ensure the matching interview actually belongs to this user.
     doc = None
     for candidate in candidate_ids:
         for row in docs:

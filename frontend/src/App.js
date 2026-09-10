@@ -1,4 +1,17 @@
-import React, { lazy, Suspense } from "react";
+﻿/**
+ * Root React app: providers, routing, and the auth guard.
+ *
+ * Provider nesting (outermost first):
+ *   QueryClientProvider (server-state caching)
+ *   -> ClerkProvider (auth)
+ *   -> AuthProvider (Clerk <-> backend token bridge)
+ *   -> MotionConfig (animation)
+ *   -> InterviewProvider (session state between setup/interview/report)
+ *   -> BrowserRouter (routing) -> ErrorBoundary -> Suspense -> routes
+ *
+ * All pages except the landing page are lazy-loaded for code splitting.
+ */
+import { lazy, Suspense } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
@@ -44,6 +57,7 @@ function AppRoutes() {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  // Routes that render without authentication (landing, auth, legal).
   const publicPaths = ["/", "/signin", "/signup", "/forgot-password", "/reset-password", "/pricing", "/privacy-policy", "/terms"];
   const isPublicPage = publicPaths.includes(location.pathname);
 
@@ -52,6 +66,7 @@ function AppRoutes() {
   }
 
   if (!loading && !user && !isPublicPage) {
+    // Remember where the user was heading so sign-in can redirect back.
     return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
   }
 

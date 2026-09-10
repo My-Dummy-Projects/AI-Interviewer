@@ -1,27 +1,27 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from "react";
+/**
+ * Global interview session state shared between pages.
+ *
+ * The interview flow spans SetupPage -> InterviewPage -> ReportPage. This
+ * context carries the setup config and generated report between them so
+ * each page can be re-entered (e.g. browser back) without losing state.
+ */
+import { createContext, useContext, useState, useCallback } from "react";
 
 const InterviewContext = createContext(null);
 
 export function InterviewProvider({ children }) {
   const [setup, setSetup] = useState(null);
   const [report, setReport] = useState(null);
-  const transcriptRef = useRef([]);
 
-  const setTranscript = useCallback((fn) => {
-    transcriptRef.current = typeof fn === "function" ? fn(transcriptRef.current) : fn;
-  }, []);
-
-  const getTranscript = useCallback(() => transcriptRef.current, []);
-
+  /** Clear the current session so a fresh interview can begin. */
   const reset = useCallback(() => {
     setSetup(null);
     setReport(null);
-    transcriptRef.current = [];
   }, []);
 
   return (
     <InterviewContext.Provider
-      value={{ setup, setSetup, report, setReport, reset, setTranscript, getTranscript }}
+      value={{ setup, setSetup, report, setReport, reset }}
     >
       {children}
     </InterviewContext.Provider>

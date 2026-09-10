@@ -1,4 +1,8 @@
-import React, { useState } from "react";
+﻿/**
+ * Pricing page: plan cards, comparison table, and the Razorpay checkout
+ * flow for upgrading a subscription.
+ */
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Check, Loader2, ArrowRight, CreditCard, Shield, LogOut, Settings } from "lucide-react";

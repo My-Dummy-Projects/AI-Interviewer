@@ -1,4 +1,7 @@
-import React from "react";
+﻿/**
+ * Animated confirmation dialog (custom, not from shadcn): dims the screen,
+ * shows a title/message, and exposes confirm/cancel callbacks.
+ */
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";

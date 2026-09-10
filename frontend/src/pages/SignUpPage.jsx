@@ -1,4 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿/**
+ * Sign-up page: email/password account creation via Clerk, followed by OTP
+ * verification. Records terms-of-service acceptance for new accounts.
+ */
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft, Mail, Lock, Eye, EyeOff, AlertTriangle, ShieldCheck, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";

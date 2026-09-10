@@ -1,3 +1,8 @@
+"""Pydantic request/response models and subscription plan configuration.
+
+These models define the wire contract between the FastAPI backend and the
+React frontend (camelCase field names match the frontend's JS conventions).
+"""
 from pydantic import BaseModel, field_validator
 from typing import List, Literal, Optional
 from types import MappingProxyType
@@ -76,42 +81,6 @@ class ConfigResponse(BaseModel):
     vapiPublicKey: str
     vapiAssistantId: str
     ready: bool
-
-
-class SignUpRequest(BaseModel):
-    email: str
-    password: str
-
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, v):
-        if len(v) < 6:
-            raise ValueError("Password must be at least 6 characters")
-        return v
-
-
-class SignInRequest(BaseModel):
-    email: str
-    password: str
-
-
-class ResetPasswordRequest(BaseModel):
-    email: str
-    redirect_to: Optional[str] = None
-
-
-class UpdatePasswordRequest(BaseModel):
-    access_token: str
-    new_password: str
-
-
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
-
-
-class AuthResponse(BaseModel):
-    user: dict
-    session: dict
 
 
 class UserProfileUpdate(BaseModel):

@@ -1,4 +1,7 @@
-import React from "react";
+﻿/**
+ * Static terms-of-service page. Pure legal content with the app's standard
+ * dark page shell.
+ */
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";

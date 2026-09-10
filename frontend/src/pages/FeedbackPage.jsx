@@ -1,4 +1,8 @@
-import React, { useState } from "react";
+﻿/**
+ * Product feedback form. Lets authenticated users send structured feedback
+ * (category + rating + message) which is stored for the team to review.
+ */
+import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { Loader2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";

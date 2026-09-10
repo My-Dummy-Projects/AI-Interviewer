@@ -1,4 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿/**
+ * Feedback report page. Renders either the freshly generated report from
+ * the interview session (context) or a historical report by route param.
+ */
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, Navigate } from "react-router-dom";
 import { RotateCcw, ArrowLeft, CheckCircle2, TrendingUp, TrendingDown, GraduationCap, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -328,7 +332,7 @@ export default function ReportPage() {
           </div>
         </section>
 
-        {/* Learning suggestions — paid only */}
+        {/* Learning suggestions - paid only */}
         {subscription && subscription.hasLearningPlan ? (
           <section className="rounded-2xl border border-cyan-400/30 bg-gradient-to-b from-cyan-400/[0.05] to-transparent p-6 md:p-8">
             <div className="flex items-center gap-2 mb-4">

@@ -1,3 +1,7 @@
+/**
+ * Compatibility redirect: password reset flows now live at
+ * /forgot-password, so this route simply forwards there.
+ */
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoadingScreen } from "@/components/LoadingScreen";

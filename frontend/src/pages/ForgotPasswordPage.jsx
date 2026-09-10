@@ -1,4 +1,7 @@
-import React, { useState, useRef } from "react";
+﻿/**
+ * Password reset flow (3 steps) via Clerk: email -> OTP -> new password.
+ */
+import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Mail, Lock, Eye, EyeOff, AlertTriangle, CheckCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";

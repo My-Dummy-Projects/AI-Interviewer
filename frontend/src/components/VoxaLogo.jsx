@@ -1,4 +1,7 @@
-import React from "react";
+﻿/**
+ * Brand logo: a cyan radial-gradient orb with an audio icon, optionally
+ * paired with the "Voxa" wordmark. Used in the navbar and marketing pages.
+ */
 import { AudioLines } from "lucide-react";
 
 export function VoxaLogo({ size = 32, showWordmark = true, className = "" }) {

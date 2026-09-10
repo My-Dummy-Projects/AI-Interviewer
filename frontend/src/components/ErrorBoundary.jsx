@@ -1,3 +1,8 @@
+/**
+ * Crash resilience: a class error boundary that shows a reload fallback
+ * screen, plus a global handler that surfaces unhandled errors/rejections
+ * in dev only (avoids crashing prod UX with console noise).
+ */
 import React from "react";
 
 export class ErrorBoundary extends React.Component {

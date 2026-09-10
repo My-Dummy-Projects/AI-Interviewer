@@ -1,4 +1,8 @@
-import React, { useEffect, useState } from "react";
+﻿/**
+ * User profile: display name/avatar/bio editing, password change (Clerk),
+ * plan usage summary, and sign-out.
+ */
+import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
   LogOut,

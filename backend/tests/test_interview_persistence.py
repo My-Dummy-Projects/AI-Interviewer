@@ -3,7 +3,6 @@ from types import SimpleNamespace
 from deps import normalize_user_id
 from feedback import build_interview_insert_payload
 from models import FeedbackReport, FeedbackRequest, QuestionEvaluation, SkillScores
-from routes_user import normalize_interview_record
 
 
 def test_normalize_user_id_converts_clerk_ids_to_uuid():

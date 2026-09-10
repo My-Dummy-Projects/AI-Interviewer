@@ -1,3 +1,9 @@
+"""Interview endpoints: plan config, setup validation, and feedback.
+
+These routes bridge the frontend interview flow: they expose the user's
+plan limits, validate that a requested setup is within quota/tier bounds,
+and trigger AI feedback generation against a transcript.
+"""
 from fastapi import APIRouter, HTTPException, Depends, Request
 
 from config import logger

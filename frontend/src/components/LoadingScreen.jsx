@@ -1,4 +1,8 @@
-import React, { useEffect } from "react";
+﻿/**
+ * Loading presentations: full-screen orb loader, an overlay variant, and a
+ * report-shaped skeleton for the report page.
+ */
+import { useEffect } from "react";
 import { Loader2, AudioLines } from "lucide-react";
 
 export function LoadingScreen({ message = "Loading...", submessage, fullScreen = true }) {

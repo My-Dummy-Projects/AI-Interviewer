@@ -1,3 +1,8 @@
+"""FastAPI application assembly and middleware configuration.
+
+Builds the app, mounts the three route modules under the ``/api`` prefix,
+and wires in body-size limiting, CORS, and rate-limit handling.
+"""
 from fastapi import FastAPI, APIRouter, HTTPException, Request
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware

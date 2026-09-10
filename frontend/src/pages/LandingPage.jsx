@@ -1,3 +1,7 @@
+/**
+ * Public landing page: hero, live voice preview, product features, pricing,
+ * testimonials, and FAQ. Includes the sans-auth Razorpay checkout path.
+ */
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -687,10 +691,6 @@ export default function LandingPage() {
                   <Mic className="h-3.5 w-3.5" /> Browser only
                 </div>
               </div>
-
-              {/* <div className="mt-6">
-                <a href="https://maidensail.com/startup/voxa" rel="dofollow"><img src="https://maidensail.com/badge/voxa.svg?theme=dark" alt="Featured on Maidensail" height="44" /></a>
-              </div> */}
             </div>
 
             <motion.div

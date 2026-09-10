@@ -1,3 +1,7 @@
+/**
+ * User dashboard: stats overview, score trend / skill charts, weekly goal,
+ * and interview history with search, filter, and pagination.
+ */
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";

@@ -1,12 +1,23 @@
-from fastapi import HTTPException, Header
-from typing import Optional
-from types import SimpleNamespace
+"""Authentication dependencies for the FastAPI app.
+
+Provides FastAPI ``Depends`` helpers that resolve a bearer token into an
+authenticated user, plus utilities for normalizing user IDs between the
+Clerk and Supabase identity systems.
+"""
 import uuid
+from types import SimpleNamespace
+from typing import Optional
+
+from fastapi import HTTPException, Header
 
 from config import logger, supabase, CLERK_JWT_ISSUER
 
 
 def _verify_with_supabase(token: str):
+    """Verify a bearer token against Supabase Auth.
+
+    Returns a lightweight ``SimpleNamespace`` user or ``None`` on failure.
+    """
     try:
         user_resp = supabase.auth.get_user(token)
         user = user_resp.user
@@ -21,6 +32,10 @@ def _verify_with_supabase(token: str):
 
 
 def _verify_with_clerk(token: str):
+    """Verify a Clerk-issued JWT by signature against Clerk's JWKS endpoint.
+
+    Returns a lightweight ``SimpleNamespace`` user or ``None`` on failure.
+    """
     try:
         import jwt
         from jwt import PyJWKClient
@@ -46,6 +61,13 @@ def _verify_with_clerk(token: str):
 
 
 def normalize_user_id(user_id: str) -> str:
+    """Convert a Clerk-style user ID into a stable UUID string.
+
+    Clerk uses ``user_xxxx``-style IDs that are not valid UUIDs, while the
+    database stores UUIDs. Existing UUIDs pass through unchanged; anything
+    else is deterministically mapped to a UUID (UUID5) so the same Clerk ID
+    always normalizes to the same database ID.
+    """
     if not user_id:
         return ""
 
@@ -65,6 +87,11 @@ def normalize_user_id(user_id: str) -> str:
 
 
 async def get_current_user(authorization: Optional[str] = Header(None)):
+    """FastAPI dependency: require a valid bearer token.
+
+    Raises ``HTTPException`` (401) when the token is missing or cannot be
+    verified by Clerk or Supabase.
+    """
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
     parts = authorization.split(" ")
@@ -84,6 +111,11 @@ async def get_current_user(authorization: Optional[str] = Header(None)):
 
 
 async def try_get_user(authorization: Optional[str] = Header(None)):
+    """FastAPI dependency: optional authentication.
+
+    Like ``get_current_user`` but returns ``None`` instead of raising,
+    allowing endpoints to degrade gracefully when no valid token is present.
+    """
     if not authorization or not authorization.startswith("Bearer "):
         return None
     parts = authorization.split(" ")

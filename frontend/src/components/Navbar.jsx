@@ -1,5 +1,8 @@
-import React from "react";
-
+﻿
+/**
+ * Sticky navigation shell used on the app pages. Renders the `left` and
+ * `right` slot content provided by each page (logo, actions, etc.).
+ */
 export function Navbar({ left, right, className = "" }) {
   return (
     <header className={`sticky top-0 z-30 border-b border-white/5 bg-[#050505]/70 backdrop-blur-xl ${className}`}>

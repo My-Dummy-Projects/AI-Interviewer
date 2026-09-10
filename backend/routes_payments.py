@@ -1,36 +1,98 @@
+"""Razorpay payment endpoints.
+
+Handles the full payment lifecycle: fetching the gateway config, creating
+orders, verifying payment signatures on the client, and consuming webhook
+events. Subscription activation logic is shared between the client-side
+verification path and the server-side webhook path to keep behavior in
+sync regardless of which notification arrives first.
+"""
+import hashlib
+import hmac
+import json
+import time
+import traceback
+from datetime import datetime, timezone, timedelta
+
 import razorpay
 import razorpay.errors
-import hmac
-import hashlib
-import json
-import traceback
-import time
-from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from config import supabase, logger, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET
 from deps import get_current_user, normalize_user_id
-from models import CreateOrderRequest, CreateOrderResponse, VerifyPaymentRequest, PLAN_LIMITS, PLAN_RANK
+from models import (
+    CreateOrderRequest,
+    CreateOrderResponse,
+    VerifyPaymentRequest,
+    PLAN_LIMITS,
+    PLAN_RANK,
+)
 from rate_limit import limiter
 
 api_router_payments = APIRouter(prefix="/api/payments")
 
 
 def _get_razorpay_client():
+    """Build an authenticated Razorpay client from env-configured keys."""
     if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
         raise RuntimeError("Razorpay key or secret not configured")
     return razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 
+def _activate_subscription(
+    uid: str,
+    plan_id: str,
+    current_plan: str,
+    payment_id: str = None,
+    payment_order_id: str = None,
+) -> None:
+    """Activate or upgrade a user's subscription after a successful payment.
+
+    Schema / limits are derived from the target plan. On an upgrade (the
+    new plan outranks the current one) the user's used-interview count is
+    preserved; on any other purchase it resets. A fresh 30-day billing
+    period is started.
+    """
+    plan_config = PLAN_LIMITS.get(plan_id, PLAN_LIMITS["free"])
+    interviews_allowed = plan_config["interviews_allowed"]
+    new_rank = PLAN_RANK.get(plan_id, 0)
+    old_rank = PLAN_RANK.get(current_plan, 0)
+
+    sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", uid).execute()
+    current_sub = sub_result.data[0] if sub_result.data else {}
+    interviews_used = current_sub.get("interviews_used", 0) if new_rank > old_rank else 0
+
+    now = datetime.now(timezone.utc)
+    period_end = now + timedelta(days=30)
+
+    supabase.table("user_subscriptions").upsert(
+        {
+            "user_id": uid,
+            "plan": plan_id,
+            "interviews_allowed": interviews_allowed,
+            "interviews_used": interviews_used,
+            "status": "active",
+            "razorpay_order_id": payment_order_id,
+            "razorpay_payment_id": payment_id,
+            "current_period_start": now.isoformat(),
+            "current_period_end": period_end.isoformat(),
+        },
+        on_conflict="user_id",
+    ).execute()
+
+    logger.info(f"Subscription activated for user {uid}: plan={plan_id}, used={interviews_used}")
+
+
 @api_router_payments.get("/config")
 async def get_payment_config():
+    """Return the public Razorpay key so the frontend can render checkout."""
     return {"keyId": RAZORPAY_KEY_ID, "currency": "INR"}
 
 
 @api_router_payments.post("/create-order", response_model=CreateOrderResponse)
 @limiter.limit("10/minute")
 async def create_order(request: Request, req: CreateOrderRequest, current_user=Depends(get_current_user)):
+    """Create a Razorpay order for a paid plan and return checkout details."""
     try:
         if req.planId not in PLAN_LIMITS:
             raise HTTPException(status_code=400, detail=f"Invalid plan: {req.planId}")
@@ -59,17 +121,19 @@ async def create_order(request: Request, req: CreateOrderRequest, current_user=D
         client = _get_razorpay_client()
 
         user_id_suffix = current_user.id[-6:] if len(current_user.id) >= 6 else current_user.id
-        order = client.order.create({
-            "amount": amount_in_paise,
-            "currency": "INR",
-            "receipt": f"{req.planId[:4]}_{user_id_suffix}_{int(time.time())}",
-            "notes": {
-                "user_id": current_user.id or "",
-                "plan_id": req.planId,
-                "interviews_allowed": str(plan_config["interviews_allowed"]),
-                "current_plan": current_plan,
-            },
-        })
+        order = client.order.create(
+            {
+                "amount": amount_in_paise,
+                "currency": "INR",
+                "receipt": f"{req.planId[:4]}_{user_id_suffix}_{int(time.time())}",
+                "notes": {
+                    "user_id": current_user.id or "",
+                    "plan_id": req.planId,
+                    "interviews_allowed": str(plan_config["interviews_allowed"]),
+                    "current_plan": current_plan,
+                },
+            }
+        )
         return CreateOrderResponse(
             orderId=order["id"],
             amount=amount_in_paise,
@@ -95,6 +159,7 @@ async def create_order(request: Request, req: CreateOrderRequest, current_user=D
 @api_router_payments.post("/verify-payment")
 @limiter.limit("10/minute")
 async def verify_payment(request: Request, req: VerifyPaymentRequest, current_user=Depends(get_current_user)):
+    """Verify a client-side payment signature and activate the subscription."""
     if not RAZORPAY_KEY_SECRET:
         raise HTTPException(status_code=500, detail="Payment verification not configured")
     expected_signature = hmac.new(
@@ -113,48 +178,23 @@ async def verify_payment(request: Request, req: VerifyPaymentRequest, current_us
         plan_id = notes.get("plan_id", "free")
         current_plan = notes.get("current_plan", "free")
 
-        if not notes.get("user_id") or not current_user.id:
-            raise HTTPException(status_code=403, detail="Order does not belong to this user")
+        # The order must be tied to the calling user.
         if notes.get("user_id") != current_user.id:
             raise HTTPException(status_code=403, detail="Order does not belong to this user")
 
         if plan_id not in PLAN_LIMITS:
             raise HTTPException(status_code=400, detail="Invalid plan in order")
 
-        plan_config = PLAN_LIMITS[plan_id]
-        interviews_allowed = plan_config["interviews_allowed"]
-        new_rank = PLAN_RANK.get(plan_id, 0)
-        old_rank = PLAN_RANK.get(current_plan, 0)
-
-        # Fetch current subscription
         uid = normalize_user_id(current_user.id)
-        sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", uid).execute()
-        current_sub = sub_result.data[0] if sub_result.data else {}
+        _activate_subscription(
+            uid,
+            plan_id,
+            current_plan,
+            payment_id=req.razorpay_payment_id,
+            payment_order_id=req.razorpay_order_id,
+        )
 
-        now = datetime.now(timezone.utc)
-        period_end = now + timedelta(days=30)
-
-        if new_rank > old_rank:
-            # Upgrade: apply new limits immediately, preserve used count
-            interviews_used = current_sub.get("interviews_used", 0)
-            logger.info(f"Upgrade: user {current_user.id} from {current_plan} to {plan_id}, preserving {interviews_used} used")
-        else:
-            # Same plan or downgrade via new purchase: reset
-            interviews_used = 0
-            logger.info(f"New subscription: user {current_user.id} plan {plan_id}, resetting used count")
-
-        supabase.table("user_subscriptions").update({
-            "plan": plan_id,
-            "interviews_allowed": interviews_allowed,
-            "interviews_used": interviews_used,
-            "status": "active",
-            "razorpay_order_id": req.razorpay_order_id,
-            "razorpay_payment_id": req.razorpay_payment_id,
-            "current_period_start": now.isoformat(),
-            "current_period_end": period_end.isoformat(),
-        }).eq("user_id", uid).execute()
-
-        logger.info(f"Payment verified for user {current_user.id}: plan={plan_id}, used={interviews_used}")
+        logger.info(f"Payment verified for user {current_user.id}: plan={plan_id}")
         return {"status": "success", "plan": plan_id}
     except HTTPException:
         raise
@@ -165,6 +205,7 @@ async def verify_payment(request: Request, req: VerifyPaymentRequest, current_us
 
 @api_router_payments.post("/webhook")
 async def razorpay_webhook(request: Request):
+    """Handle Razorpay server-side events (payment.captured, etc.)."""
     if not RAZORPAY_WEBHOOK_SECRET:
         logger.error("Razorpay webhook secret not configured — rejecting webhook")
         raise HTTPException(status_code=503, detail="Webhook not configured")
@@ -199,29 +240,14 @@ async def razorpay_webhook(request: Request):
             logger.warning("Webhook payment.captured missing user_id")
             return JSONResponse(content={"status": "ignored"})
 
-        plan_config = PLAN_LIMITS.get(plan_id, PLAN_LIMITS["free"])
-        interviews_allowed = plan_config["interviews_allowed"]
-        new_rank = PLAN_RANK.get(plan_id, 0)
-        old_rank = PLAN_RANK.get(current_plan, 0)
-
         uid = normalize_user_id(user_id)
-        sub_result = supabase.table("user_subscriptions").select("*").eq("user_id", uid).execute()
-        current_sub = sub_result.data[0] if sub_result.data else {}
-        interviews_used = current_sub.get("interviews_used", 0) if new_rank > old_rank else 0
-
-        now = datetime.now(timezone.utc)
-        period_end = now + timedelta(days=30)
-
-        supabase.table("user_subscriptions").update({
-            "plan": plan_id,
-            "interviews_allowed": interviews_allowed,
-            "interviews_used": interviews_used,
-            "status": "active",
-            "razorpay_order_id": payload.get("order_id"),
-            "razorpay_payment_id": payload.get("id"),
-            "current_period_start": now.isoformat(),
-            "current_period_end": period_end.isoformat(),
-        }).eq("user_id", uid).execute()
+        _activate_subscription(
+            uid,
+            plan_id,
+            current_plan,
+            payment_id=payload.get("id"),
+            payment_order_id=payload.get("order_id"),
+        )
 
         logger.info(f"Webhook: subscription activated for user {user_id}: plan={plan_id}")
 

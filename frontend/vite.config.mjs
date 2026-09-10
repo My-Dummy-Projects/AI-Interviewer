@@ -1,42 +1,19 @@
 ﻿import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-function preloadHeadingFont() {
-  return {
-    name: "preload-heading-font",
-    apply: "build",
-    writeBundle() {
-      const assetsDir = path.resolve(__dirname, "build/assets");
-      const htmlPath = path.resolve(__dirname, "build/index.html");
-      if (!fs.existsSync(htmlPath) || !fs.existsSync(assetsDir)) return;
-      const font = fs
-        .readdirSync(assetsDir)
-        .find(
-          (name) =>
-            name.includes("poppins-latin-900-normal") && name.endsWith(".woff2"),
-        );
-      if (!font) return;
-      let html = fs.readFileSync(htmlPath, "utf8");
-      const link = `<link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/${font}" />`;
-      if (html.includes("rel=\"preload\" as=\"font\"")) return;
-      html = html.replace("<title>", `${link}\n    <title>`);
-      fs.writeFileSync(htmlPath, html);
-    },
-  };
-}
-
 export default defineConfig({
-  plugins: [react(), preloadHeadingFont()],
+  plugins: [react()],
   resolve: {
     alias: {
+      // Import "@/" anywhere to resolve to the src directory.
       "@": path.resolve(__dirname, "src"),
     },
   },
+  // Keep the CRA-era REACT_APP_ prefix so existing env vars keep working.
   envPrefix: ["REACT_APP_", "VITE_"],
   esbuild: {
     include: /\.(m?ts|[jt]sx?)$/,
@@ -48,6 +25,7 @@ export default defineConfig({
     sourcemap: false,
     outDir: "build",
     emptyOutDir: true,
+    // Split vendor libraries into stable chunks for better caching.
     rollupOptions: {
       output: {
         manualChunks(id) {

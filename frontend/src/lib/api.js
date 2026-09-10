@@ -1,3 +1,9 @@
+/** Central HTTP client for the AI Interviewer backend.
+ *
+ * Wraps axios with a bearer-token mechanism (from Clerk), a deduplicated
+ * 401-token-refresh interceptor, and typed helper methods for every
+ * backend endpoint the frontend consumes.
+ */
 import axios from "axios";
 
 const BACKEND_URL = (import.meta.env.REACT_APP_BACKEND_URL || "").replace(/\/+$/, "");
@@ -7,14 +13,21 @@ let _bearerToken = null;
 let _tokenRefresher = null;
 let _refreshPromise = null;
 
+/** Store the current bearer token to attach to authenticated requests. */
 export function setBearerToken(token) {
   _bearerToken = token;
 }
 
+/** Register a function that returns a fresh token (provided by AuthContext). */
 export function setTokenRefresher(fn) {
   _tokenRefresher = fn;
 }
 
+/** Get a fresh token, shared across concurrent callers.
+ *
+ * If multiple requests expire at once, only one refresh runs and every
+ * caller awaits the same promise.
+ */
 export async function ensureFreshToken() {
   if (!_tokenRefresher) return _bearerToken;
   if (!_refreshPromise) {
@@ -36,8 +49,8 @@ function authHeaders() {
   return {};
 }
 
-// Deduplicated token refresh: if 10 requests fail 401 simultaneously,
-// only one refresh call is made and all retry with the new token.
+// Deduplicated token refresh: if ten requests fail 401 simultaneously, only
+// one refresh call is made and all retry with the new token.
 axios.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -95,27 +108,13 @@ const api = {
     return data;
   },
 
-  // Config
+  // Vapi config (public, no auth needed)
   async getConfig() {
     const { data } = await axios.get(`${API}/config`);
     return data;
   },
 
-  // Interview
-  async getPlanConfig() {
-    const { data } = await axios.get(`${API}/interview/plan-config`, {
-      headers: authHeaders(),
-    });
-    return data;
-  },
-
-  async validateSetup(payload) {
-    const { data } = await axios.post(`${API}/interview/validate-setup`, payload, {
-      headers: authHeaders(),
-    });
-    return data;
-  },
-
+  // Interview feedback (transcript -> AI report)
   async submitFeedback(payload) {
     const { data } = await axios.post(`${API}/interview/feedback`, payload, {
       headers: authHeaders(),
@@ -124,6 +123,7 @@ const api = {
     return data;
   },
 
+  // Product feedback
   async submitToolFeedback(payload) {
     const { data } = await axios.post(`${API}/user/feedback`, payload, {
       headers: authHeaders(),
@@ -140,13 +140,6 @@ const api = {
   },
 
   // Payments
-  async getPaymentConfig() {
-    const { data } = await axios.get(`${API}/payments/config`, {
-      headers: authHeaders(),
-    });
-    return data;
-  },
-
   async createOrder(planId) {
     const { data } = await axios.post(
       `${API}/payments/create-order`,
@@ -155,7 +148,6 @@ const api = {
     );
     return data;
   },
-
   async verifyPayment(payload) {
     const { data } = await axios.post(
       `${API}/payments/verify-payment`,

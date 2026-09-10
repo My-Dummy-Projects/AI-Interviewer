@@ -1,8 +1,6 @@
-@import "@fontsource/poppins/latin-400.css";
-@import "@fontsource/poppins/latin-500.css";
-@import "@fontsource/poppins/latin-600.css";
-@import "@fontsource/poppins/latin-700.css";
-@import "@fontsource/poppins/latin-900.css";
+/* NOTE: --font-heading/--font-body (Outfit, DM Sans) are not bundled here;
+   they currently fall back to system-ui. Add @fontsource/outfit and
+   @fontsource/dm-sans imports if the intended brand fonts should render. */
 @import "@fontsource/jetbrains-mono/latin-400.css";
 @import "@fontsource/jetbrains-mono/latin-500.css";
 @import "@fontsource/jetbrains-mono/latin-700.css";
@@ -133,9 +131,6 @@ code {
     linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 24px 24px;
 }
-.noise {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
 
 /* Glass surface */
 .glass {
@@ -203,21 +198,6 @@ code {
   animation: marquee 30s linear infinite;
 }
 
-/* Fade-in-up utility (framer-motion is preferred; keep as fallback) */
-@keyframes fadeup {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.fade-up {
-  animation: fadeup 0.6s ease-out both;
-}
-
 /* Scrollbar tint */
 ::-webkit-scrollbar {
   width: 10px;
@@ -235,8 +215,7 @@ code {
   .orb-speaking,
   .orb-ring,
   .wave-bar,
-  .marquee,
-  .fade-up {
+  .marquee {
     animation: none !important;
   }
 }

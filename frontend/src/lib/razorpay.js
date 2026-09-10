@@ -1,3 +1,10 @@
+/**
+ * Razorpay checkout helper.
+ *
+ * Lazily loads the Razorpay SDK script once, then opens the checkout modal
+ * for an order previously created via the backend. Callbacks surface the
+ * payment result (success response or error message) to the caller.
+ */
 const SCRIPT_URL = "https://checkout.razorpay.com/v1/checkout.js";
 
 let _loaded = false;

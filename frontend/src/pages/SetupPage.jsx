@@ -1,4 +1,8 @@
-import React, { useState } from "react";
+﻿/**
+ * Interview setup: choose target role, experience level, and duration,
+ * constrained by the user's subscription tier.
+ */
+import { useState } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
 import { ArrowRight, ArrowLeft, Mic, ShieldCheck, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,11 +32,11 @@ const EXPERIENCE_LEVELS = [
 ];
 
 const ALL_DURATIONS = [
-  { value: "5", label: "5 minutes — Quick Screen" },
-  { value: "10", label: "10 minutes — Standard" },
-  { value: "15", label: "15 minutes — Extended" },
-  { value: "20", label: "20 minutes — Deep Dive" },
-  { value: "30", label: "30 minutes — Full Loop" },
+  { value: "5", label: "5 minutes - Quick Screen" },
+  { value: "10", label: "10 minutes - Standard" },
+  { value: "15", label: "15 minutes - Extended" },
+  { value: "20", label: "20 minutes - Deep Dive" },
+  { value: "30", label: "30 minutes - Full Loop" },
 ];
 
 export default function SetupPage() {
@@ -104,7 +108,7 @@ export default function SetupPage() {
       {/* Hero + Setup */}
       <main className="relative max-w-7xl mx-auto px-6 py-10 md:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
-          {/* Left column — setup form */}
+          {/* Left column - setup form */}
           <section className="lg:col-span-7">
             <div className="label-overline mb-4">01 / Setup</div>
             <h1
@@ -227,7 +231,7 @@ export default function SetupPage() {
             </div>
           </section>
 
-          {/* Right column — brand poster */}
+          {/* Right column - brand poster */}
           <aside className="lg:col-span-5">
             <div className="relative h-full min-h-[420px] rounded-2xl border border-white/10 overflow-hidden bg-[#0a0a0a]">
               <div

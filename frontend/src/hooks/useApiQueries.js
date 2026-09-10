@@ -1,14 +1,14 @@
+/** React Query hooks that wrap the API client for server-state fetching. */
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 
+/** Centralized React Query cache keys for consistent invalidation. */
 export const queryKeys = {
   profile: ["profile"],
   dashboardStats: ["dashboard-stats"],
   interviews: ["interviews"],
   interview: (id) => ["interview", id],
   subscription: ["subscription"],
-  planConfig: ["plan-config"],
-  paymentConfig: ["payments-config"],
   config: ["config"],
 };
 

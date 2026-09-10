@@ -1,3 +1,4 @@
+/** React Query mutations for write operations, with cache invalidation. */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { queryKeys } from "./useApiQueries";
@@ -8,18 +9,6 @@ export function useUpdateProfileMutation() {
     mutationFn: (profile) => api.updateProfile(profile),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.profile });
-    },
-  });
-}
-
-export function useSubmitFeedbackMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload) => api.submitFeedback(payload),
-    retry: 1,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.interviews });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
     },
   });
 }

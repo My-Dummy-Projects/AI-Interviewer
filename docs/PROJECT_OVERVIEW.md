@@ -14,7 +14,7 @@ AI Interviewer is a full-stack application for practicing interviews through voi
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | React 19 + Tailwind CSS + CRACO |
+| **Frontend** | React 19 + Tailwind CSS + Vite |
 | **Backend** | FastAPI + Pydantic v2 |
 | **Auth** | Clerk (JWT via JWKS verification) |
 | **Database** | Supabase / PostgreSQL |

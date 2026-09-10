@@ -1,4 +1,8 @@
-import React, { useState } from "react";
+﻿/**
+ * Sign-in page backed by Clerk. On success, redirects to the dashboard (or
+ * back to the route the user originally tried to visit).
+ */
+import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, Mail, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";

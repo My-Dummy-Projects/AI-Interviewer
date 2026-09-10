@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+/**
+ * Live voice interview page.
+ *
+ * Boots the Vapi call from the setup config, streams the transcript into
+ * the UI, enforces time limits, and submits the captured transcript to the
+ * backend for AI feedback once the call ends.
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
 import { Mic, MicOff, PhoneOff, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -36,7 +43,6 @@ export default function InterviewPage() {
   const transcriptRef = useRef([]);
   const partialsRef = useRef({ user: "", assistant: "" });
   const endedGuardRef = useRef(false);
-  const configRef = useRef(null);
   const handleEndRef = useRef(null);
   const debounceRef = useRef(null);
 
@@ -156,7 +162,6 @@ export default function InterviewPage() {
       if (destroyed) return;
       setStatus("listening");
     };
-    const onVolumeLevel = () => {};
     const onMessage = (msg) => {
       if (destroyed || !msg || msg.type !== "transcript") return;
       const role = msg.role === "user" ? "user" : "assistant";
@@ -194,7 +199,6 @@ export default function InterviewPage() {
       try {
         const cfg = configData;
         if (destroyed) return;
-        configRef.current = cfg;
         if (!cfg.ready) {
           setStatus("error");
           setError(
@@ -218,7 +222,6 @@ export default function InterviewPage() {
         vapi.on("call-end", onCallEnd);
         vapi.on("speech-start", onSpeechStart);
         vapi.on("speech-end", onSpeechEnd);
-        vapi.on("volume-level", onVolumeLevel);
         vapi.on("message", onMessage);
         vapi.on("error", onError);
 
@@ -248,7 +251,6 @@ export default function InterviewPage() {
         currentVapi.off("call-end", onCallEnd);
         currentVapi.off("speech-start", onSpeechStart);
         currentVapi.off("speech-end", onSpeechEnd);
-        currentVapi.off("volume-level", onVolumeLevel);
         currentVapi.off("message", onMessage);
         currentVapi.off("error", onError);
       }

@@ -1,3 +1,11 @@
+/**
+ * PostHog analytics bootstrap.
+ *
+ * Loads the PostHog snippet and initializes it with the project's tracking
+ * key. Intentionally only imported async (see src/index.js) so it never
+ * blocks first paint. The project key below is a public client key — safe
+ * to ship in the bundle, export only anonymized analytics.
+ */
 !(function (t, e) {
   var o, n, p, r;
   e.__SV ||

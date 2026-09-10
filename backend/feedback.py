@@ -1,13 +1,20 @@
+"""AI feedback generation and interview persistence.
+
+This module is the heart of the feedback pipeline: it builds the LLM
+prompt from a transcript, calls OpenRouter, parses/evaluates the result,
+optionally falls back to a deterministic report when the LLM is
+unavailable, persists the interview (JSONB + normalized tables), and
+handles atomic credit consumption/refund.
+"""
 import json
 import re
 import traceback
-from types import SimpleNamespace
 from datetime import datetime, timezone
 from fastapi import HTTPException
 from openai import AsyncOpenAI
 
 from config import logger, OPENROUTER_API_KEY, OPENROUTER_MODEL, supabase
-from models import FeedbackRequest, FeedbackReport, SkillScores, QuestionEvaluation, PLAN_LIMITS
+from models import FeedbackRequest, FeedbackReport, SkillScores, QuestionEvaluation
 
 
 def ensure_user_profile(current_user) -> None:
@@ -247,10 +254,6 @@ def fallback_report(req: FeedbackRequest, reason: str) -> FeedbackReport:
     )
 
 
-def _resolve_user(current_user, req: FeedbackRequest):
-    return current_user
-
-
 def sanitize_prompt_input(value: str, max_len: int = 100) -> str:
     if not value:
         return ""
@@ -260,6 +263,8 @@ def sanitize_prompt_input(value: str, max_len: int = 100) -> str:
 
 
 async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) -> FeedbackReport:
+    # Imported lazily to avoid a circular import: routes_user imports this
+    # module at the top level, so feedback cannot import routes_user eagerly.
     from routes_user import consume_interview_credit, refund_interview_credit, check_interview_quota
     if not OPENROUTER_API_KEY:
         logger.warning("OPENROUTER_API_KEY missing, returning fallback report.")
@@ -303,8 +308,6 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
         except Exception as e:
             logger.error(f"Failed to check subscription for {current_user.id}: {e}")
 
-    current_user = _resolve_user(current_user, req)
-
     if current_user:
         credit_consumed = False
         try:
@@ -316,31 +319,31 @@ async def generate_and_save_feedback(req: FeedbackRequest, current_user=None) ->
             logger.info(f"Interview payload built: {json.dumps(payload)}")
             result = supabase.table("interviews").insert(payload).execute()
             if result.data:
-                    interview_id = result.data[0]["id"]
+                interview_id = result.data[0]["id"]
 
-                    # Attempt to store JSONB report/transcript separately (columns may not exist in all deployments)
-                    if jsonb_report is not None or jsonb_transcript is not None:
-                        try:
-                            update_data = {}
-                            if jsonb_report is not None:
-                                update_data["report"] = jsonb_report
-                            if jsonb_transcript is not None:
-                                update_data["transcript"] = jsonb_transcript
-                            supabase.table("interviews").update(update_data).eq("id", interview_id).execute()
-                        except Exception as jsonb_err:
-                            logger.warning(f"Could not set JSONB columns (may not exist in schema): {jsonb_err}")
+                # Attempt to store JSONB report/transcript separately (columns may not exist in all deployments)
+                if jsonb_report is not None or jsonb_transcript is not None:
+                    try:
+                        update_data = {}
+                        if jsonb_report is not None:
+                            update_data["report"] = jsonb_report
+                        if jsonb_transcript is not None:
+                            update_data["transcript"] = jsonb_transcript
+                        supabase.table("interviews").update(update_data).eq("id", interview_id).execute()
+                    except Exception as jsonb_err:
+                        logger.warning(f"Could not set JSONB columns (may not exist in schema): {jsonb_err}")
 
-                    logger.info(f"Interview {interview_id} saved, now saving normalized data")
-                    save_normalized_data(req, report, interview_id)
+                logger.info(f"Interview {interview_id} saved, now saving normalized data")
+                save_normalized_data(req, report, interview_id)
 
-                    # Atomically consume interview credit
-                    if consume_interview_credit(current_user.id):
-                        credit_consumed = True
-                        logger.info(f"Interview credit consumed for user {current_user.id}")
-                    else:
-                        logger.warning(f"Failed to consume interview credit for user {current_user.id}")
+                # Atomically consume interview credit
+                if consume_interview_credit(current_user.id):
+                    credit_consumed = True
+                    logger.info(f"Interview credit consumed for user {current_user.id}")
+                else:
+                    logger.warning(f"Failed to consume interview credit for user {current_user.id}")
 
-                    logger.info(f"Interview {interview_id} fully saved with normalized data")
+                logger.info(f"Interview {interview_id} fully saved with normalized data")
             else:
                 logger.error(f"Failed to save interview: no data returned. Response: {result}")
         except Exception as e:
