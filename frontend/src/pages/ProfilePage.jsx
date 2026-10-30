@@ -30,9 +30,10 @@ import { Label } from "@/components/ui/label";
 import { Navbar } from "@/components/Navbar";
 import { VoxaLogo } from "@/components/VoxaLogo";
 import { useAuth } from "@/context/AuthContext";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useUser } from "@clerk/clerk-react";
 import { useProfileQuery, useSubscriptionQuery } from "@/hooks/useApiQueries";
-import { useUpdateProfileMutation } from "@/hooks/useApiMutations";
+import { useUpdateProfileMutation, useDeleteAccountMutation } from "@/hooks/useApiMutations";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { toast } from "sonner";
 
@@ -72,6 +73,9 @@ export default function ProfilePage() {
   const [passwordSaving, setPasswordSaving] = useState(false);
 
   const updateProfile = useUpdateProfileMutation();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const deleteAccount = useDeleteAccountMutation();
 
   useEffect(() => {
     if (profile) {
@@ -100,6 +104,31 @@ export default function ProfilePage() {
     } catch {
       // ignore
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await deleteAccount.mutateAsync();
+    } catch {
+      toast.error("Couldn't delete account — nothing was changed");
+      setDeleting(false);
+      return;
+    }
+    try {
+      await clerkUser?.delete();
+    } catch {
+      toast.warning("Your data is deleted, but your sign-in couldn't be removed — sign out to finish.");
+    }
+    try {
+      await signout();
+    } catch {
+      // Local auth state below is cleared regardless; a stale Clerk session is harmless.
+    }
+    setDeleting(false);
+    setDeleteOpen(false);
+    navigate("/");
   };
 
   const handleChangePassword = async (e) => {
@@ -451,11 +480,13 @@ export default function ProfilePage() {
                     <p className="text-xs text-zinc-500">Permanently delete your account and all data</p>
                   </div>
                   <Button
-                    disabled
+                    onClick={() => setDeleteOpen(true)}
                     variant="outline"
-                    className="rounded-full h-9 px-4 text-xs font-medium bg-transparent border-red-400/30 text-red-400 cursor-not-allowed shrink-0"
+                    data-testid="delete-account-button"
+                    className="rounded-full h-9 px-4 text-xs font-medium bg-transparent border-red-400/30 text-red-400 hover:bg-red-400/10 hover:text-red-300 shrink-0"
                   >
-                    Coming soon
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                    Delete account
                   </Button>
                 </div>
               </div>
@@ -463,6 +494,22 @@ export default function ProfilePage() {
           </div>
         </div>
       </main>
+      <ConfirmModal
+        open={deleteOpen}
+        destructive
+        loading={deleting}
+        title="Delete account"
+        message="This permanently deletes your profile, all interview history, your subscription record, and your account. This cannot be undone."
+        confirmLabel="Delete forever"
+        cancelLabel="Cancel"
+        requireText={profile?.email || clerkUser?.primaryEmailAddress?.emailAddress || user?.email || ""}
+        inputLabel="Type your email to confirm"
+        inputPlaceholder={profile?.email || "you@example.com"}
+        inputTestId="delete-account-confirm-input"
+        confirmTestId="delete-account-confirm-button"
+        onConfirm={handleDeleteAccount}
+        onCancel={() => { if (!deleting) setDeleteOpen(false); }}
+      />
     </div>
   );
 }
