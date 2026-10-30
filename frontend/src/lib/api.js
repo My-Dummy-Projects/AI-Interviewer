@@ -85,6 +85,11 @@ const api = {
     });
     return data;
   },
+  async deleteAccount() {
+    await axios.delete(`${API}/user/account`, {
+      headers: authHeaders(),
+    });
+  },
 
   // Dashboard
   async getDashboardStats() {
