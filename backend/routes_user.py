@@ -181,6 +181,21 @@ def get_user_id_candidates(user_id: str, email: str = "", client=None) -> list[s
     return candidates
 
 
+def purge_user_data(candidate_ids: list[str], client=None) -> None:
+    """Hard-delete every app-owned row for the given user IDs.
+
+    Interviews are deleted first so orphan rows (no parent
+    ``user_profiles`` row) are still removed; deleting ``user_profiles``
+    afterwards cascades the remaining children (subscriptions, feedback,
+    and any leftover interview children).
+    """
+    db = client or supabase
+    if not db or not candidate_ids:
+        return
+    db.table("interviews").delete().in_("user_id", candidate_ids).execute()
+    db.table("user_profiles").delete().in_("user_id", candidate_ids).execute()
+
+
 def normalize_interview_record(record: dict) -> dict:
     """Map a raw DB row into the frontend's InterviewDetail shape.
 
