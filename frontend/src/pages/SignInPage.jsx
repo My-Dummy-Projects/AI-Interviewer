@@ -38,7 +38,9 @@ export default function SignInPage() {
         err.errors?.[0]?.longMessage ||
         err.response?.data?.detail ||
         "";
-      setError(detail || "Invalid email or password");
+      // Prefer Clerk's own message, then our descriptive error (e.g. an
+      // incomplete sign-in), then a generic fallback.
+      setError(detail || err.message || "Invalid email or password");
     } finally {
       setLoading(false);
     }

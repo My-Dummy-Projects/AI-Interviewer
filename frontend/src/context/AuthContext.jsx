@@ -114,18 +114,29 @@ export function AuthProvider({ children }) {
         password: password,
       });
 
-      if (result.status === "complete") {
-        await setActiveSignIn({ session: result.createdSessionId, redirectUrl: "/dashboard" });
-        // Ensure profile exists in Supabase (handles users who signed up before sync-profile was added)
-        try {
-          const token = await getToken();
-          if (token) {
-            setBearerToken(token);
-            await api.syncProfile();
-          }
-        } catch (e) {
-          console.warn("Profile sync failed (will retry on profile fetch):", e);
+      if (result.status !== "complete") {
+        // Clerk could not finish the sign-in (it needs another verification step
+        // or no session was created). Fail loudly instead of letting the caller
+        // treat this as success: a false success redirects into the auth guard,
+        // which bounces straight back to /signin with no explanation.
+        throw new Error(
+          `Sign-in could not be completed (status: ${result.status || "unknown"}). Please try again.`,
+        );
+      }
+      if (!result.createdSessionId) {
+        throw new Error("Sign-in did not produce a session. Please try again.");
+      }
+
+      await setActiveSignIn({ session: result.createdSessionId, redirectUrl: "/dashboard" });
+      // Ensure profile exists in Supabase (handles users who signed up before sync-profile was added)
+      try {
+        const token = await getToken();
+        if (token) {
+          setBearerToken(token);
+          await api.syncProfile();
         }
+      } catch (e) {
+        console.warn("Profile sync failed (will retry on profile fetch):", e);
       }
 
       return result;
