@@ -38,3 +38,9 @@ export function useVerifyPaymentMutation() {
     },
   });
 }
+
+export function useDeleteAccountMutation() {
+  return useMutation({
+    mutationFn: () => api.deleteAccount(),
+  });
+}
