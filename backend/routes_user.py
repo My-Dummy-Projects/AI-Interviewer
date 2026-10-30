@@ -5,7 +5,7 @@ quota check, atomic credit consume/refund) used by the interview and
 payments modules, along with normalization helpers for reading interview
 records out of the database.
 """
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from datetime import datetime, timezone, timedelta
 
 from config import supabase, logger
@@ -322,6 +322,23 @@ async def update_profile(req: UserProfileUpdate, current_user=Depends(get_curren
         created_at=str(profile.get("created_at", "")),
         updated_at=str(profile.get("updated_at", "")),
     )
+
+
+@api_router_user.delete("/account", status_code=204)
+@limiter.limit("5/minute")
+async def delete_account(request: Request, current_user=Depends(get_current_user)):
+    """Permanently delete the caller's account and all app data."""
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    email = current_user.email or ""
+    candidates = get_user_id_candidates(current_user.id, email)
+    try:
+        purge_user_data(candidates)
+    except Exception as e:
+        logger.error(f"delete-account failed for {current_user.id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete account")
+    logger.info(f"delete-account: purged {len(candidates)} candidate(s) for {current_user.id}")
+    return Response(status_code=204)
 
 
 @api_router_user.get("/interviews", response_model=InterviewHistoryResponse)

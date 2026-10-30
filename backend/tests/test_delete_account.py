@@ -93,3 +93,10 @@ def test_candidates_include_email_matched_legacy_profiles():
         normalize_user_id("legacy-row-id"),
     ]
     assert ("select", "user_profiles", "email", "user@example.com") in db.calls
+
+
+def test_delete_account_route_is_registered():
+    from app import app
+
+    paths = app.openapi()["paths"]
+    assert "delete" in paths.get("/api/user/account", {})
