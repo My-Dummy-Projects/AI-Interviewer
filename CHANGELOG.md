@@ -3,7 +3,7 @@
 All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased] — Codebase Cleanup Pass (2026-09-05)
+## [Unreleased]
 
 A "startup-grade" cleanup of the working tree on branch `test`: dead code
 and dev artifacts removed, codebase commented for maintainability, config
@@ -11,6 +11,15 @@ and docs corrected. No user-facing functionality or design was changed.
 
 **Diff summary:** 74 files — 607 insertions(+), 104,370 deletions(−);
 the deletion volume is dominated by stale test/audit artifacts being removed.
+
+### Added
+
+- **Delete account** (Settings → Danger zone): `DELETE /api/user/account`
+  hard-deletes the caller's Supabase data (profiles, interviews and their
+  child rows, subscriptions, feedback — via FK cascade); the frontend then
+  removes the Clerk identity via `user.delete()`, clears local auth state,
+  and redirects to `/`. The confirm dialog requires typing the account
+  email. Rate-limited to 5/minute; success is an idempotent `204`.
 
 ---
 
